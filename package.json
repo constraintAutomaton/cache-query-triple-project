@@ -1,0 +1,19 @@
+{
+  "name": "cache_query_processing",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@comunica/query-sparql": "^4.1.0",
+    "@comunica/types": "^4.1.0",
+    "@rdfjs/types": "^2.0.1",
+    "rdf-data-factory": "^2.0.2",
+    "rdf-dereference": "^4.0.0",
+    "sparqlalgebrajs": "^5.0.1"
+  }
+}

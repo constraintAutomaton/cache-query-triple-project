@@ -1,0 +1,71 @@
+{
+  "head": {
+    "vars": [
+      "p"
+    ]
+  },
+  "results": {
+    "bindings": [
+      {
+        "p": {
+          "type": "uri",
+          "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+        }
+      },
+      {
+        "p": {
+          "type": "uri",
+          "value": "http://www.w3.org/ns/sparql-service-description#defaultDataset"
+        }
+      },
+      {
+        "p": {
+          "type": "uri",
+          "value": "http://www.w3.org/ns/sparql-service-description#endpoint"
+        }
+      },
+      {
+        "p": {
+          "type": "uri",
+          "value": "http://www.w3.org/ns/sparql-service-description#resultFormat"
+        }
+      },
+      {
+        "p": {
+          "type": "uri",
+          "value": "http://www.w3.org/ns/sparql-service-description#supportedLanguage"
+        }
+      },
+      {
+        "p": {
+          "type": "uri",
+          "value": "http://www.w3.org/ns/sparql-service-description#feature"
+        }
+      },
+      {
+        "p": {
+          "type": "uri",
+          "value": "http://www.w3.org/ns/sparql-service-description#defaultGraph"
+        }
+      },
+      {
+        "p": {
+          "type": "uri",
+          "value": "http://purl.org/pav/version"
+        }
+      },
+      {
+        "p": {
+          "type": "uri",
+          "value": "http://purl.org/dc/terms/issued"
+        }
+      },
+      {
+        "p": {
+          "type": "uri",
+          "value": "http://www.w3.org/ns/sparql-service-description#namedGraph"
+        }
+      }
+    ]
+  }
+}
