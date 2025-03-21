@@ -1,179 +1,124 @@
-import { Algebra } from 'sparqlalgebrajs';
-import { QueryEngine } from '@comunica/query-sparql';
-import type { BindingsStream } from '@comunica/types';
+import { Algebra, translate } from 'sparqlalgebrajs';
+import { isError, isResult, type CacheHitFunction, type Result } from './util';
+import { parseCache, type Cache } from './parse_cache';
 import type * as RDF from '@rdfjs/types';
-import { isError, type Result } from './util';
 import { rdfDereferencer } from "rdf-dereference";
-import * as Vocabulary from './vocabulary';
 
+/**
+ * Get cached quads if the selected cache hit algorithm hit.
+ * @param {Readonly<ICacheQueryInput>} input - input arguments 
+ * @returns {Promise<Result<CacheQuads | undefined, string | Error>>} - The cached results if they exist or an error
+ */
+export async function getCachedQuads(input: Readonly<ICacheQueryInput>): Promise<Result<CacheQuads | undefined, string | Error>> {
+    let cache: Cache | undefined;
+    if (typeof input.cache === "string") {
+        const cacheResp = await parseCache(input.cache);
+        if (isError(cacheResp)) {
+            return { error: cacheResp.error };
+        }
+        cache = cacheResp.value;
+    } else {
+        cache = input.cache;
+    }
+    const cacheResult = await getRelevantCacheElement({ ...input, cache });
+
+    return { value: cacheResult };
+}
+
+async function getRelevantCacheElement(
+    { cache, query, targetEndpoint, sources, cacheHitAlgorithms: relevantQueryAlgorithms, outputOption }: Readonly<Omit<ICacheQueryInput, "cache"> & { cache: Cache }>
+): Promise<CacheQuads | undefined> {
+    const cacheForTarget = cache.get(targetEndpoint);
+    if (cacheForTarget === undefined) {
+        return undefined;
+    }
+    let cachedQuadUrl: string | undefined;
+    let cacheHitAlgorithmIndex = 0;
+
+    for (const [index, algorithm] of relevantQueryAlgorithms.entries()) {
+        const operations: Map<string, Promise<[string, Result<boolean>]>> = new Map();
+
+        for (const [cachedQuery, { resultUrl }] of cacheForTarget) {
+            const checkOperation: Promise<[string, Result<boolean>]> = new Promise(async (resolve) => {
+                const resp = await algorithm(query, translate(cachedQuery), { sources });
+                resolve([resultUrl, resp]);
+            });
+            operations.set(resultUrl, checkOperation);
+        }
+        do {
+            const [resultUrl, result] = await Promise.race(operations.values());
+            if (isResult(result) && result.value) {
+                cachedQuadUrl = resultUrl;
+            } else {
+                operations.delete(resultUrl);
+            }
+        } while (operations.size > 0 && cachedQuadUrl !== undefined);
+
+        if (cachedQuadUrl !== undefined) {
+            cacheHitAlgorithmIndex = index;
+            break;
+        }
+    }
+    if (cachedQuadUrl === undefined) {
+        return undefined;
+    }
+
+    if (outputOption === OutputOption.URL) {
+        return {
+            cache: cachedQuadUrl,
+            algorithmIndex: cacheHitAlgorithmIndex
+        }
+    } else if (cachedQuadUrl !== undefined) {
+        const { data: quadStream } = await rdfDereferencer.dereference(cachedQuadUrl);
+        return {
+            cache: quadStream,
+            algorithmIndex: cacheHitAlgorithmIndex
+        };
+    }
+    return undefined
+}
+
+/**
+ * Output option for the cache.
+ */
+export enum OutputOption {
+    URL,
+    QUAD_STREAM
+};
+
+/**
+ * Input argument for getting information from a cache.
+ */
 export interface ICacheQueryInput {
+    /**
+     * A cache. Can be a cache object or an URL
+     */
+    cache: Cache | string,
+    /**
+     * The query that we are trying to retrieve from the cache.
+     */
     query: Algebra.Operation,
-    engine: QueryEngine,
-    context: {
-        sources: string[],
-    },
-    cacheUrl: string,
-    cachePickingAlgorithm: (q1: Algebra.Operation, q2: Algebra.Operation, options?: Record<string, any>) => Promise<Result<boolean>>
-}
-
-export interface IQueryResult {
-    bindings: BindingsStream,
-    comeFromCache: boolean
-}
-
-interface IRawCache {
-    query?: string,
-    endpoints?: string,
-    results?: string,
-    isACacheEntry: boolean
-}
-
-interface IRDFList {
-    first?: string,
-    rest?: string
-}
-
-export interface ICacheElement {
-    resultUrl: string,
     targetEndpoint: string,
-    endpoints: string[]
+    sources: string[],
+
+    cacheHitAlgorithms: CacheHitFunction[],
+
+    outputOption: OutputOption
 }
-
-type Cache = Map<string, ICacheElement>;
-
-
-export async function queryWithCache(input: ICacheQueryInput): Promise<Result<BindingsStream, string>> {
-    const cacheResp = await parseCache(input.cacheUrl);
-    if (isError(cacheResp)) {
-        return { error: cacheResp.error.message };
-    }
-    const cache = cacheResp.value;
-
-    for(const entry of cache){
-
-    }
-
-    return { error: "" }
+/**
+ * A cache results
+ */
+export interface ICacheResult<C = RDF.Stream<RDF.Quad> | string> {
+    /**
+     * A cache results
+     */
+    cache: C;
+    /**
+     * Index of the algorithm used to get cache result
+     */
+    algorithmIndex: number;
 }
-
-export async function parseCache(cacheUrl: string): Promise<Result<Cache, Error>> {
-    const { data } = await rdfDereferencer.dereference(cacheUrl);
-
-    const cacheProcessesing: Map<string, IRawCache> = new Map();
-    const rdfLists: Map<string, IRDFList> = new Map();
-
-    return new Promise(resolve => {
-        data.on('data', (quad: RDF.Quad) => {
-            // get the information about the RDF list
-            const rdfListElement = rdfLists.get(quad.subject.value);
-            if (quad.predicate.equals(Vocabulary.ELEMENT_OF_LIST_PREDICATE)) {
-                if (rdfListElement === undefined) {
-                    rdfLists.set(quad.subject.value, {
-                        first: quad.object.value
-                    })
-                } else {
-                    rdfListElement.first = quad.object.value;
-                }
-            } else if (quad.predicate.equals(Vocabulary.NEXT_ELEMENT_OF_LIST_PREDICATE)) {
-                if (rdfListElement === undefined) {
-                    rdfLists.set(quad.subject.value, {
-                        rest: quad.object.value
-                    })
-                } else {
-                    rdfListElement.rest = quad.object.value;
-                }
-            }
-            // get the information from the cache
-            const entry = cacheProcessesing.get(quad.subject.value);
-            if (quad.predicate.equals(Vocabulary.RDF_TYPE) && quad.object.equals(Vocabulary.QUERY_CLASS)) {
-                if (entry === undefined) {
-                    cacheProcessesing.set(quad.subject.value, { isACacheEntry: true });
-                } else {
-                    entry.isACacheEntry = true;
-                }
-            } else if (quad.predicate.equals(Vocabulary.QUERY_IRI_PREDICATE)) {
-                if (entry === undefined) {
-                    cacheProcessesing.set(quad.subject.value, {
-                        isACacheEntry: false,
-                        query: quad.object.value
-                    })
-                } else {
-                    entry.query = quad.object.value;
-                }
-            } else if (quad.predicate.equals(Vocabulary.RESULT_IRI_PREDICATE)) {
-                if (entry === undefined) {
-                    cacheProcessesing.set(quad.subject.value, {
-                        isACacheEntry: false,
-                        results: quad.object.value
-                    })
-                } else {
-                    entry.results = quad.object.value;
-                }
-            } else if (quad.predicate.equals(Vocabulary.ENDPOINT_PREDICATE)) {
-                if (entry === undefined) {
-                    cacheProcessesing.set(quad.subject.value, {
-                        isACacheEntry: false,
-                        endpoints: quad.object.value
-                    })
-                } else {
-                    entry.endpoints = quad.object.value;
-                }
-            }
-        });
-
-        data.on("error", (error) => {
-            resolve({ error })
-        });
-        data.on("end", () => {
-            const cache = rawCacheToCache(cacheProcessesing, rdfLists);
-
-            resolve({ value: cache })
-        })
-    });
-}
-
-function rawCacheToCache(rawCache: Map<string, IRawCache>, rdfLists: Map<string, IRDFList>): Cache {
-    const cache: Cache = new Map();
-    for (const rawCacheElement of rawCache.values()) {
-        if (rawCacheElement.isACacheEntry &&
-            rawCacheElement.results !== undefined &&
-            rawCacheElement.endpoints !== undefined &&
-            rawCacheElement.query !== undefined) {
-            let endpoints = getEndpointFromAnRdfList(rawCacheElement.endpoints, rdfLists);
-            endpoints = endpoints.reverse()
-            const targetEndpoint = endpoints.pop();
-            if (targetEndpoint !== undefined) {
-                cache.set(rawCacheElement.query, {
-                    resultUrl: rawCacheElement.results,
-                    targetEndpoint,
-                    endpoints
-                })
-            }
-        }
-    }
-    return cache;
-}
-
-function getEndpointFromAnRdfList(root: string, rdfLists: Map<string, IRDFList>): string[] {
-    const endpoints: string[] = [];
-    let current = root;
-    const maxLenght = 10_000;
-    let i = 0;
-    do {
-        const listElement = rdfLists.get(current);
-        if (listElement === undefined) {
-            break;
-        }
-        const { first, rest } = listElement;
-        if (first !== undefined) {
-            endpoints.push(first);
-        }
-        if (rest === undefined) {
-            break;
-        }
-        current = rest;
-        i += 1;
-    } while (current !== Vocabulary.LAST_ELEMENT_LIST.value || i < maxLenght);
-    return endpoints;
-}
-
+/**
+ * Cached quad
+ */
+export type CacheQuads = ICacheResult<RDF.Stream<RDF.Quad>> | ICacheResult<string>;
