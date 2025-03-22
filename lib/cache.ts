@@ -20,24 +20,28 @@ export async function getCachedQuads(input: Readonly<ICacheQueryInput>): Promise
     } else {
         cache = input.cache;
     }
-    const cacheResult = await getRelevantCacheElement({ ...input, cache });
+    const cacheResult = await getRelevantCacheEntry({ ...input, cache });
 
     return { value: cacheResult };
 }
 
-async function getRelevantCacheElement(
-    { cache, query, targetEndpoint, sources, cacheHitAlgorithms: relevantQueryAlgorithms, outputOption }: Readonly<Omit<ICacheQueryInput, "cache"> & { cache: Cache }>
+async function getRelevantCacheEntry(
+    { cache, query, targetEndpoint, sources, cacheHitAlgorithms, outputOption }: Readonly<Omit<ICacheQueryInput, "cache"> & { cache: Cache }>
 ): Promise<CacheQuads | undefined> {
+    // check if there are cache results with this target endpoint
     const cacheForTarget = cache.get(targetEndpoint);
     if (cacheForTarget === undefined) {
         return undefined;
     }
-    let cachedQuadUrl: string | undefined;
-    let cacheHitAlgorithmIndex = 0;
+    const cachedResult: Partial<ICacheResult<string>> = {};
 
-    for (const [index, algorithm] of relevantQueryAlgorithms.entries()) {
+    //  Check the cache with each cache hit algoritm
+    for (const [index, algorithm] of cacheHitAlgorithms.entries()) {
+        // we will run in concurence the algorithm for each cache entry.
+        // TODO add a rate limiter so that if we have too many entries we don't use too much memory
         const operations: Map<string, Promise<[string, Result<boolean>]>> = new Map();
 
+        // for each query in the cache
         for (const [cachedQuery, { resultUrl }] of cacheForTarget) {
             const checkOperation: Promise<[string, Result<boolean>]> = new Promise(async (resolve) => {
                 const resp = await algorithm(query, translate(cachedQuery), { sources });
@@ -45,37 +49,41 @@ async function getRelevantCacheElement(
             });
             operations.set(resultUrl, checkOperation);
         }
+        // exit when one of the entries has hit the cache
         do {
             const [resultUrl, result] = await Promise.race(operations.values());
             if (isResult(result) && result.value) {
-                cachedQuadUrl = resultUrl;
+                cachedResult.cache = resultUrl;
+                cachedResult.algorithmIndex = index;
             } else {
                 operations.delete(resultUrl);
             }
-        } while (operations.size > 0 && cachedQuadUrl !== undefined);
+        } while (operations.size > 0 && cachedResult.cache !== undefined);
 
-        if (cachedQuadUrl !== undefined) {
-            cacheHitAlgorithmIndex = index;
+        if (cachedResult.cache !== undefined) {
             break;
         }
     }
-    if (cachedQuadUrl === undefined) {
+
+    if (!isNotPartialCacheResult(cachedResult)) {
         return undefined;
     }
 
     if (outputOption === OutputOption.URL) {
-        return {
-            cache: cachedQuadUrl,
-            algorithmIndex: cacheHitAlgorithmIndex
-        }
-    } else if (cachedQuadUrl !== undefined) {
-        const { data: quadStream } = await rdfDereferencer.dereference(cachedQuadUrl);
+        return cachedResult;
+
+    } else if (cachedResult.cache !== undefined) {
+        const { data: quadStream } = await rdfDereferencer.dereference(cachedResult.cache);
         return {
             cache: quadStream,
-            algorithmIndex: cacheHitAlgorithmIndex
+            algorithmIndex: cachedResult.algorithmIndex
         };
     }
     return undefined
+}
+
+function isNotPartialCacheResult(cacheResult: Readonly<Partial<ICacheResult>>): cacheResult is ICacheResult {
+    return cacheResult.cache !== undefined && cacheResult.algorithmIndex !== undefined
 }
 
 /**
