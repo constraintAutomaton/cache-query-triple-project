@@ -3,15 +3,22 @@
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "asynciterator": "^3.9.0",
+    "rdf-parse": "^4.0.0",
+    "streamify-string": "^1.0.1"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
   },
   "dependencies": {
     "@rdfjs/types": "^2.0.1",
+    "@types/streamify-string": "^1.0.4",
     "rdf-data-factory": "^2.0.2",
     "rdf-dereference": "^4.0.0",
     "sparqlalgebrajs": "^5.0.1"
+  },
+  "scripts": {
+    "debug": "bun test --inspect-wait=localhost:6499/"
   }
 }

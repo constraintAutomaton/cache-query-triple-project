@@ -15,6 +15,10 @@ export async function parseCache(cacheUrl: Readonly<string>): Promise<Result<Cac
     const rdfLists: Map<string, IRDFList> = new Map();
 
     return new Promise(resolve => {
+        if(data.closed){
+            resolve({ value: new Map() });
+        }
+
         data.on('data', (quad: RDF.Quad) => {
             collectRawCache(quad, cacheProcessesing, rdfLists);
         });
@@ -37,7 +41,7 @@ function collectRawCache(quad: Readonly<RDF.Quad>, cacheProcessesing: Readonly<M
         if (rdfListElement === undefined) {
             rdfLists.set(quad.subject.value, {
                 first: quad.object.value
-            })
+            });
         } else {
             rdfListElement.first = quad.object.value;
         }
@@ -45,7 +49,7 @@ function collectRawCache(quad: Readonly<RDF.Quad>, cacheProcessesing: Readonly<M
         if (rdfListElement === undefined) {
             rdfLists.set(quad.subject.value, {
                 rest: quad.object.value
-            })
+            });
         } else {
             rdfListElement.rest = quad.object.value;
         }
@@ -63,7 +67,7 @@ function collectRawCache(quad: Readonly<RDF.Quad>, cacheProcessesing: Readonly<M
             cacheProcessesing.set(quad.subject.value, {
                 isACacheEntry: false,
                 query: quad.object.value
-            })
+            });
         } else {
             entry.query = quad.object.value;
         }
@@ -72,7 +76,7 @@ function collectRawCache(quad: Readonly<RDF.Quad>, cacheProcessesing: Readonly<M
             cacheProcessesing.set(quad.subject.value, {
                 isACacheEntry: false,
                 results: quad.object.value
-            })
+            });
         } else {
             entry.results = quad.object.value;
         }
@@ -81,7 +85,7 @@ function collectRawCache(quad: Readonly<RDF.Quad>, cacheProcessesing: Readonly<M
             cacheProcessesing.set(quad.subject.value, {
                 isACacheEntry: false,
                 endpoints: quad.object.value
-            })
+            });
         } else {
             entry.endpoints = quad.object.value;
         }
