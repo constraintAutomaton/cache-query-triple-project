@@ -8,7 +8,7 @@ import type * as RDF from '@rdfjs/types';
  * @param {Readonly<string>} cacheUrl - The URL of the cache RDF resource.
  * @returns {Promise<Result<Cache, Error>>} - A cache object or an error. The promise is never rejected.
  */
-export async function parseCache(cacheUrl: Readonly<string>): Promise<Result<Cache, Error>> {
+export async function parseCache(cacheUrl: Readonly<string>): Promise<Result<Readonly<Cache>, Error>> {
     const { data } = await rdfDereferencer.dereference(cacheUrl);
 
     const cacheProcessesing: Map<string, IRawCache> = new Map();

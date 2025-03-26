@@ -16,7 +16,8 @@
     "@types/streamify-string": "^1.0.4",
     "rdf-data-factory": "^2.0.2",
     "rdf-dereference": "^4.0.0",
-    "sparqlalgebrajs": "^5.0.1"
+    "sparqlalgebrajs": "^5.0.1",
+    "sparqljson-parse": "^3.0.0"
   },
   "scripts": {
     "debug": "bun test --inspect-wait=localhost:6499/"

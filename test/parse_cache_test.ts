@@ -2,7 +2,7 @@ import { expect, describe, mock, it, beforeEach } from "bun:test";
 import { ArrayIterator, AsyncIterator, fromArray } from "asynciterator";
 import type * as RDF from '@rdfjs/types';
 import { parseCache, type Cache } from "../lib/parse_cache";
-import { isError, isResult, RDF_FACTORY } from "../lib/util";
+import { isError, isResult } from "../lib/util";
 import * as Vocabulary from '../lib/vocabulary';
 import { rdfParser } from "rdf-parse";
 import Streamify from 'streamify-string';
@@ -25,10 +25,10 @@ describe("parseCache", () => {
     });
 
     it("should return an empty cache given a resource having no triples", async () => {
-        const iteratorError = new Error("error"); 
+        const iteratorError = new Error("error");
         quadStream = <any>{
-            on: (event:any, func:any)=>{
-                if (event ==="error"){
+            on: (event: any, func: any) => {
+                if (event === "error") {
                     func(iteratorError)
                 }
             }
@@ -136,13 +136,13 @@ describe("parseCache", () => {
             a "${Vocabulary.QUERY_CLASS.value}".
 
         <endpoints> <${Vocabulary.NEXT_ELEMENT_OF_LIST_PREDICATE.value}> <endpointsE2> ;
-            <${ Vocabulary.ELEMENT_OF_LIST_PREDICATE.value}> <endpoint1> .
+            <${Vocabulary.ELEMENT_OF_LIST_PREDICATE.value}> <endpoint1> .
         
-        <endpointsE2>  <${ Vocabulary.ELEMENT_OF_LIST_PREDICATE.value}> <endpoint2> ;
+        <endpointsE2>  <${Vocabulary.ELEMENT_OF_LIST_PREDICATE.value}> <endpoint2> ;
             <${Vocabulary.NEXT_ELEMENT_OF_LIST_PREDICATE.value}> <endpointsE3> .
         
         <endpointsE3> <${Vocabulary.NEXT_ELEMENT_OF_LIST_PREDICATE.value}> <${Vocabulary.LAST_ELEMENT_LIST.value}> ;
-                <${ Vocabulary.ELEMENT_OF_LIST_PREDICATE.value}> <endpoint3> .
+                <${Vocabulary.ELEMENT_OF_LIST_PREDICATE.value}> <endpoint3> .
         `;
 
         const triplesStream = rdfParser.parse(Streamify(string_triples), { contentType: 'text/turtle' })

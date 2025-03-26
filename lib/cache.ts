@@ -1,15 +1,19 @@
-import { Algebra, translate } from 'sparqlalgebrajs';
-import { isError, isResult, type CacheHitFunction, type Result } from './util';
+import { type Algebra, translate } from 'sparqlalgebrajs';
+import { isError, isResult, RDF_FACTORY, type CacheHitFunction, type Result } from './util';
 import { parseCache, type Cache } from './parse_cache';
-import type * as RDF from '@rdfjs/types';
-import { rdfDereferencer } from "rdf-dereference";
+import { SparqlJsonParser, type IBindings } from "sparqljson-parse";
+
+const SPARQL_JSON_PARSER = new SparqlJsonParser({
+    dataFactory: RDF_FACTORY,
+    prefixVariableQuestionMark: false,
+});
 
 /**
  * Get cached quads if the selected cache hit algorithm hit.
  * @param {Readonly<ICacheQueryInput>} input - input arguments 
- * @returns {Promise<Result<CacheQuads | undefined, string | Error>>} - The cached results if they exist or an error
+ * @returns {Promise<Result<CacheResult | undefined, string | Error>>} - The cached results if they exist or an error
  */
-export async function getCachedQuads(input: Readonly<ICacheQueryInput>): Promise<Result<CacheQuads | undefined, string | Error>> {
+export async function getCachedQuads(input: Readonly<ICacheQueryInput>): Promise<Result<CacheResult | undefined, string | Error>> {
     let cache: Cache | undefined;
     if (typeof input.cache === "string") {
         const cacheResp = await parseCache(input.cache);
@@ -20,18 +24,17 @@ export async function getCachedQuads(input: Readonly<ICacheQueryInput>): Promise
     } else {
         cache = input.cache;
     }
-    const cacheResult = await getRelevantCacheEntry({ ...input, cache });
-
-    return { value: cacheResult };
+    const cacheResultOrError = await getRelevantCacheEntry({ ...input, cache });
+    return cacheResultOrError;
 }
 
 async function getRelevantCacheEntry(
     { cache, query, targetEndpoint, sources, cacheHitAlgorithms, outputOption }: Readonly<Omit<ICacheQueryInput, "cache"> & { cache: Cache }>
-): Promise<CacheQuads | undefined> {
+): Promise<Result<CacheResult | undefined, Error>> {
     // check if there are cache results with this target endpoint
     const cacheForTarget = cache.get(targetEndpoint);
     if (cacheForTarget === undefined) {
-        return undefined;
+        return { value: undefined };
     }
     const cachedResult: Partial<ICacheResult<string>> = {};
 
@@ -66,23 +69,48 @@ async function getRelevantCacheEntry(
     }
 
     if (!isNotPartialCacheResult(cachedResult)) {
-        return undefined;
+        return { value: undefined };
     }
 
     if (outputOption === OutputOption.URL) {
-        return cachedResult;
+        return { value: cachedResult };
 
     } else if (cachedResult.cache !== undefined) {
-        const { data: quadStream } = await rdfDereferencer.dereference(cachedResult.cache);
+        const bindingsOrError = await fetchJsonSPARQL(cachedResult.cache);
+        if (isError(bindingsOrError)) {
+            return bindingsOrError;
+        }
+
         return {
-            cache: quadStream,
-            algorithmIndex: cachedResult.algorithmIndex
+            value: {
+                cache: bindingsOrError.value,
+                algorithmIndex: cachedResult.algorithmIndex
+            }
         };
     }
-    return undefined
+    return { value: undefined }
 }
 
-function isNotPartialCacheResult(cacheResult: Readonly<Partial<ICacheResult>>): cacheResult is ICacheResult {
+async function fetchJsonSPARQL(url: string): Promise<Result<IBindings[], Error>> {
+    return new Promise(resolve => {
+        fetch(url)
+            .then(data => data.json())
+            .then(json => {
+                try {
+                    resolve({ value: SPARQL_JSON_PARSER.parseJsonResults(json) });
+                } catch (error: unknown) {
+                    if (error instanceof Error) {
+                        resolve({ error });
+                    } else {
+                        resolve({ error: new Error(`there was an error of unknown type ${error}`) });
+                    }
+                }
+            })
+            .catch((error) => resolve({ error }));
+    });
+}
+
+function isNotPartialCacheResult<C extends string | IBindings[]>(cacheResult: Readonly<Partial<ICacheResult<C>>>): cacheResult is ICacheResult<C> {
     return cacheResult.cache !== undefined && cacheResult.algorithmIndex !== undefined
 }
 
@@ -91,7 +119,7 @@ function isNotPartialCacheResult(cacheResult: Readonly<Partial<ICacheResult>>): 
  */
 export enum OutputOption {
     URL,
-    QUAD_STREAM
+    Bindings_BAG
 };
 
 /**
@@ -101,7 +129,7 @@ export interface ICacheQueryInput {
     /**
      * A cache. Can be a cache object or an URL
      */
-    cache: Cache | string,
+    cache: Readonly<Cache> | string,
     /**
      * The query that we are trying to retrieve from the cache.
      */
@@ -116,7 +144,7 @@ export interface ICacheQueryInput {
 /**
  * A cache results
  */
-export interface ICacheResult<C = RDF.Stream<RDF.Quad> | string> {
+export interface ICacheResult<C extends string | IBindings[]> {
     /**
      * A cache results
      */
@@ -129,4 +157,4 @@ export interface ICacheResult<C = RDF.Stream<RDF.Quad> | string> {
 /**
  * Cached quad
  */
-export type CacheQuads = ICacheResult<RDF.Stream<RDF.Quad>> | ICacheResult<string>;
+export type CacheResult = ICacheResult<IBindings[]> | ICacheResult<string>;
