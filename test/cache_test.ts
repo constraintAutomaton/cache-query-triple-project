@@ -20,63 +20,109 @@ describe("getCachedQuads", () => {
         ["endpoint", endpoint1Entry]
     ]);
 
-    describe("return no cached data", ()=>{
+    describe("return no cached data", () => {
         it("should return no cache data given no cache hit algorithm provided", async () => {
             const targetEndpoint = "endpoint";
-           
+
             const input: ICacheQueryInput = {
-                cache:A_CACHE,
+                cache: A_CACHE,
                 query: A_QUERY,
                 targetEndpoint,
                 sources: SOURCES,
                 cacheHitAlgorithms: [],
                 outputOption: OutputOption.URL
             };
-    
+
             const resultOrError = await getCachedQuads(input);
-            
+
             expect(isResult(resultOrError)).toBe(true);
-            const result: {value:CacheResult} = <{value:CacheResult}> resultOrError;
-            expect(result.value).toBeUndefined();  
+            const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
+            expect(result.value).toBeUndefined();
         });
-    
+
         it("should return no cache data given a cache hit algorithm that return always false", async () => {
             const targetEndpoint = "endpoint";
-           const cacheHit = mock().mockResolvedValue({value:false});
+            const cacheHit = mock().mockResolvedValue({ value: false });
             const input: ICacheQueryInput = {
-                cache:A_CACHE,
+                cache: A_CACHE,
                 query: A_QUERY,
                 targetEndpoint,
                 sources: SOURCES,
-                cacheHitAlgorithms: [cacheHit],
+                cacheHitAlgorithms: [{ algorithm: cacheHit }],
                 outputOption: OutputOption.URL
             };
-    
+
             const resultOrError = await getCachedQuads(input);
-            
+
             expect(isResult(resultOrError)).toBe(true);
-            const result: {value:CacheResult} = <{value:CacheResult}> resultOrError;
+            const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
             expect(result.value).toBeUndefined();
-            
         });
-    
+
+        it("should return no cache data given a cache hit algorithm that is slower than the timeout", async () => {
+            const targetEndpoint = "endpoint";
+            const cacheHit = mock(() => {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        resolve({ value: true });
+                    }, 500 * 10_000);
+                });
+            })
+            const input: ICacheQueryInput = {
+                cache: A_CACHE,
+                query: A_QUERY,
+                targetEndpoint,
+                sources: SOURCES,
+                cacheHitAlgorithms: [{ algorithm: <any>cacheHit, time_limit: 100 }],
+                outputOption: OutputOption.URL
+            };
+
+            const resultOrError = await getCachedQuads(input);
+
+            expect(isResult(resultOrError)).toBe(true);
+            const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
+            expect(result.value).toBeUndefined();
+        });
+
         it("should return no cache data given an empty cache", async () => {
             const targetEndpoint = "endpoint";
-           const cacheHit = mock().mockResolvedValue({value:true});
+            const cacheHit = mock().mockResolvedValue({ value: true });
             const input: ICacheQueryInput = {
-                cache:new Map(),
+                cache: new Map(),
                 query: A_QUERY,
                 targetEndpoint,
                 sources: SOURCES,
-                cacheHitAlgorithms: [cacheHit],
+                cacheHitAlgorithms: [{ algorithm: cacheHit }],
                 outputOption: OutputOption.URL
             };
-    
+
             const resultOrError = await getCachedQuads(input);
-            
+
             expect(isResult(resultOrError)).toBe(true);
-            const result: {value:CacheResult} = <{value:CacheResult}> resultOrError;
+            const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
             expect(result.value).toBeUndefined();
+        });
+
+    });
+
+    describe("return a cache", () => {
+        it("should return an entry given a cache it function that always hit", async () => {
+            const targetEndpoint = "endpoint";
+            const cacheHit = mock().mockResolvedValue({ value: true });
+            const input: ICacheQueryInput = {
+                cache: A_CACHE,
+                query: A_QUERY,
+                targetEndpoint,
+                sources: SOURCES,
+                cacheHitAlgorithms: [{ algorithm: cacheHit }],
+                outputOption: OutputOption.URL
+            };
+
+            const resultOrError = await getCachedQuads(input);
+
+            expect(isResult(resultOrError)).toBe(true);
+            const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
+            expect(result.value).toBeDefined();
         });
     });
 });

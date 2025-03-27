@@ -72,7 +72,7 @@ async function getRelevantCacheEntry(
             } else {
                 operations.delete(resultUrl);
             }
-        } while (operations.size > 0 && cachedResult.cache !== undefined);
+        } while (operations.size > 0 && cachedResult.algorithmIndex === undefined);
 
         if (cachedResult.cache !== undefined) {
             break;
@@ -152,6 +152,10 @@ export interface ICacheQueryInput {
     * If the timeout is exceeded, the cache hit function is considered to return false.
     */
     cacheHitAlgorithms: { algorithm: CacheHitFunction, time_limit?: number }[],
+    /**
+     * Maximum number of concurent execution of the cache hit algorithms. 
+     * If set to undefined then an unlimited number of execution can be launch.
+     */
     maxConcurentExecCacheHitAlgorithm?: number,
 
     outputOption: OutputOption
