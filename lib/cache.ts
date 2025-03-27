@@ -2,6 +2,7 @@ import { type Algebra, translate } from 'sparqlalgebrajs';
 import { isError, isResult, RDF_FACTORY, type CacheHitFunction, type Result } from './util';
 import { parseCache, type Cache } from './parse_cache';
 import { SparqlJsonParser, type IBindings } from "sparqljson-parse";
+import * as pLimit from 'p-limit';
 
 const SPARQL_JSON_PARSER = new SparqlJsonParser({
     dataFactory: RDF_FACTORY,
@@ -29,7 +30,7 @@ export async function getCachedQuads(input: Readonly<ICacheQueryInput>): Promise
 }
 
 async function getRelevantCacheEntry(
-    { cache, query, targetEndpoint, sources, cacheHitAlgorithms, outputOption }: Readonly<Omit<ICacheQueryInput, "cache"> & { cache: Cache }>
+    { cache, query, targetEndpoint, sources, cacheHitAlgorithms, outputOption, maxConcurentExecCacheHitAlgorithm }: Readonly<Omit<ICacheQueryInput, "cache"> & { cache: Cache }>
 ): Promise<Result<CacheResult | undefined, Error>> {
     // check if there are cache results with this target endpoint
     const cacheForTarget = cache.get(targetEndpoint);
@@ -37,9 +38,10 @@ async function getRelevantCacheEntry(
         return { value: undefined };
     }
     const cachedResult: Partial<ICacheResult<string>> = {};
+    const limitPromises = pLimit.default(maxConcurentExecCacheHitAlgorithm || Number.MAX_SAFE_INTEGER);
 
     //  Check the cache with each cache hit algoritm
-    for (const [index, algorithm] of cacheHitAlgorithms.entries()) {
+    for (const [index, { algorithm, time_limit }] of cacheHitAlgorithms.entries()) {
         // we will run in concurence the algorithm for each cache entry.
         // TODO add a rate limiter so that if we have too many entries we don't use too much memory
         const operations: Map<string, Promise<[string, Result<boolean>]>> = new Map();
@@ -47,10 +49,19 @@ async function getRelevantCacheEntry(
         // for each query in the cache
         for (const [cachedQuery, { resultUrl }] of cacheForTarget) {
             const checkOperation: Promise<[string, Result<boolean>]> = new Promise(async (resolve) => {
+                let timer: Timer | undefined;
+                if (time_limit) {
+                    timer = setTimeout(() => {
+                        resolve([resultUrl, { value: false }]);
+                    }, time_limit);
+                }
+
                 const resp = await algorithm(query, translate(cachedQuery), { sources });
+                clearTimeout(timer);
+
                 resolve([resultUrl, resp]);
             });
-            operations.set(resultUrl, checkOperation);
+            operations.set(resultUrl, limitPromises(() => checkOperation));
         }
         // exit when one of the entries has hit the cache
         do {
@@ -75,20 +86,20 @@ async function getRelevantCacheEntry(
     if (outputOption === OutputOption.URL) {
         return { value: cachedResult };
 
-    } else if (cachedResult.cache !== undefined) {
-        const bindingsOrError = await fetchJsonSPARQL(cachedResult.cache);
-        if (isError(bindingsOrError)) {
-            return bindingsOrError;
-        }
-
-        return {
-            value: {
-                cache: bindingsOrError.value,
-                algorithmIndex: cachedResult.algorithmIndex
-            }
-        };
     }
-    return { value: undefined }
+
+    const bindingsOrError = await fetchJsonSPARQL(cachedResult.cache);
+    if (isError(bindingsOrError)) {
+        return bindingsOrError;
+    }
+
+    return {
+        value: {
+            cache: bindingsOrError.value,
+            algorithmIndex: cachedResult.algorithmIndex
+        }
+    };
+
 }
 
 async function fetchJsonSPARQL(url: string): Promise<Result<IBindings[], Error>> {
@@ -136,8 +147,12 @@ export interface ICacheQueryInput {
     query: Algebra.Operation,
     targetEndpoint: string,
     sources: string[],
-
-    cacheHitAlgorithms: CacheHitFunction[],
+    /**
+    * An array of cache hit algorithms with associated time limits (in milliseconds).
+    * If the timeout is exceeded, the cache hit function is considered to return false.
+    */
+    cacheHitAlgorithms: { algorithm: CacheHitFunction, time_limit?: number }[],
+    maxConcurentExecCacheHitAlgorithm?: number,
 
     outputOption: OutputOption
 }

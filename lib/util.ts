@@ -26,5 +26,5 @@ export type IOptions = {
     /**
      * Sources of the query
      */
-    sources: string[]
+    sources: string[],
 } & Record<string, any>;
