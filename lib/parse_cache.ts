@@ -92,7 +92,7 @@ function collectRawCache(quad: Readonly<RDF.Quad>, cacheProcessesing: Readonly<M
     }
 }
 
-function rawCacheToCache(rawCache: Readonly<Map<string, IRawCache>>, rdfLists: Readonly<Map<string, IRDFList>>): Cache {
+function rawCacheToCache(rawCache: Readonly<Map<string, IRawCache>>, rdfLists: Readonly<Map<string, IRDFList>>): Readonly<Cache> {
     const cache: Cache = new Map();
     for (const rawCacheElement of rawCache.values()) {
         if (rawCacheElement.isACacheEntry &&
@@ -105,7 +105,7 @@ function rawCacheToCache(rawCache: Readonly<Map<string, IRawCache>>, rdfLists: R
             }
             const targetEndpoint = listOfEnpointsToString(endpoints);
 
-            const cacheEntry: ICacheElement = {
+            const cacheEntry: ICacheEntry = {
                 resultUrl: rawCacheElement.results,
                 endpoints
             };
@@ -147,20 +147,20 @@ function getEndpointFromAnRdfList(root: Readonly<string>, rdfLists: Readonly<Map
 /**
  * A cache of queries indexed by target endpoint (the endpoint from where the query as been executed) and then by queries.
  */
-export type Cache = Map<string, Map<string, ICacheElement>>;
+export type Cache = Map<string, Map<string, Readonly<ICacheEntry>>>;
 
 /**
  * An element in a cache
  */
-export interface ICacheElement {
+export interface ICacheEntry {
     /**
      * The URL of the result resource
      */
-    resultUrl: string,
+    resultUrl: Readonly<string>,
     /**
      * The URL of the endpoints in the federation excluding the target endpoint.
      */
-    endpoints: string[]
+    endpoints: Readonly<string[]>
 }
 
 interface IRawCache {

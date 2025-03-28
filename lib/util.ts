@@ -26,7 +26,7 @@ export type IOptions = {
     /**
      * Sources of the query
      */
-    sources: string[],
+    sources: Readonly<string[]>,
 } & Record<string, any>;
 
 /**
@@ -34,6 +34,7 @@ export type IOptions = {
  * @param {string[]} endpoints
  * @returns {string} 
  */
-export function listOfEnpointsToString(endpoints: string[]): string {
-    return endpoints.sort((a, b) => a.localeCompare(b)).toString();
+export function listOfEnpointsToString(endpoints: Readonly<string[]>): string {
+    const newListofEndpoint = [...endpoints];
+    return newListofEndpoint.sort((a, b) => a.localeCompare(b)).toString();
 }

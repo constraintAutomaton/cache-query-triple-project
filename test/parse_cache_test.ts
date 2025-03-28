@@ -19,7 +19,7 @@ mock.module("rdf-dereference", () => {
     };
 });
 
-describe("parseCache", () => {
+describe(parseCache.name, () => {
     beforeEach(() => {
         quadStream = fromArray(new Array<RDF.Quad>());
     });

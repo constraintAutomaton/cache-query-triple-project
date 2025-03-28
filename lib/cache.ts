@@ -1,6 +1,6 @@
 import { type Algebra, translate } from 'sparqlalgebrajs';
 import { isError, isResult, listOfEnpointsToString, RDF_FACTORY, type CacheHitFunction, type Result } from './util';
-import { parseCache, type Cache, type ICacheElement as ICacheEntry } from './parse_cache';
+import { parseCache, type Cache} from './parse_cache';
 import { SparqlJsonParser, type IBindings } from "sparqljson-parse";
 import * as pLimit from 'p-limit';
 
@@ -46,7 +46,6 @@ async function getRelevantCacheEntry(
     //  Check the cache with each cache hit algoritm
     for (const [index, { algorithm, time_limit }] of cacheHitAlgorithms.entries()) {
         // we will run in concurence the algorithm for each cache entry.
-        // TODO add a rate limiter so that if we have too many entries we don't use too much memory
         const operations: Map<string, Promise<[string, Result<boolean>]>> = new Map();
 
         // for each query in the cache
@@ -90,7 +89,6 @@ async function getRelevantCacheEntry(
 
     if (outputOption === OutputOption.URL) {
         return { value: cachedResult };
-
     }
 
     const bindingsOrError = await fetchJsonSPARQL(cachedResult.cache);
@@ -134,7 +132,7 @@ function isNotPartialCacheResult<C extends string | IBindings[]>(cacheResult: Re
  */
 export enum OutputOption {
     URL,
-    Bindings_BAG
+    BINDING_BAG
 };
 
 /**
@@ -144,25 +142,25 @@ export interface ICacheQueryInput {
     /**
      * A cache. Can be a cache object or an URL
      */
-    cache: Readonly<Cache> | string,
+    cache: Readonly<Cache> | Readonly<string>,
     /**
      * The query that we are trying to retrieve from the cache.
      */
-    query: Algebra.Operation,
+    query: Readonly<Algebra.Operation>,
     /**
      * Sources of the query, can be left empty if service clauses are used.
      */
-    endpoints: string[],
+    endpoints: Readonly<string[]>,
     /**
     * An array of cache hit algorithms with associated time limits (in milliseconds).
     * If the timeout is exceeded, the cache hit function is considered to return false.
     */
-    cacheHitAlgorithms: { algorithm: CacheHitFunction, time_limit?: number }[],
+    cacheHitAlgorithms: Readonly<{ algorithm: CacheHitFunction, time_limit?: number }[]>,
     /**
      * Maximum number of concurent execution of the cache hit algorithms. 
      * If set to undefined then an unlimited number of execution can be launch.
      */
-    maxConcurentExecCacheHitAlgorithm?: number,
+    maxConcurentExecCacheHitAlgorithm?: Readonly<number>,
     /**
      * The output format of the cache if it hit.
      */

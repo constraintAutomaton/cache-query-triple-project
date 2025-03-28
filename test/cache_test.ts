@@ -1,22 +1,28 @@
 import { expect, describe, mock, it, beforeEach, spyOn } from "bun:test";
 import { getCachedQuads, OutputOption, type CacheResult, type ICacheQueryInput } from "../lib/cache";
-import type { ICacheElement, Cache } from "../lib/parse_cache";
-import { Algebra, translate } from 'sparqlalgebrajs';
-import { isResult, type IOptions } from "../lib/util";
+import type { ICacheEntry, Cache } from "../lib/parse_cache";
+import { translate } from 'sparqlalgebrajs';
+import { isResult, listOfEnpointsToString, type IOptions } from "../lib/util";
 
 
-describe("getCachedQuads", () => {
+describe(getCachedQuads.name, () => {
     const A_QUERY = translate("SELECT * WHERE {?s ?p ?o.}");
     const A_CACHE_QUERY = "SELECT * WHERE {?s1 ?p1 ?o1.}";
     const ANOTHER_CACHE_QUERY = "SELECT * WHERE {?s2 ?p2 ?o2.}";
 
-    const endpoint1Entry: Map<string, ICacheElement> = new Map([
-        [A_CACHE_QUERY, { resultUrl: "R0", endpoints: ["endpoint0", "endpoint0P"] }],
-        [ANOTHER_CACHE_QUERY, { resultUrl: "R1", endpoints: ["endpoint1"] }],
+    const endpoint1Entry: Map<string, ICacheEntry> = new Map([
+        [A_CACHE_QUERY, { resultUrl: "R0", endpoints: ["endpoint"] }],
+        [ANOTHER_CACHE_QUERY, { resultUrl: "R1", endpoints: ["endpoint"] }],
+    ]);
+
+    const endpoint2Entry: Map<string, ICacheEntry> = new Map([
+        [A_CACHE_QUERY, { resultUrl: "R0", endpoints: ["endpoint2"] }],
+        [ANOTHER_CACHE_QUERY, { resultUrl: "R1", endpoints: ["endpoint2"] }],
     ]);
 
     const A_CACHE: Cache = new Map([
-        ["endpoint", endpoint1Entry]
+        ["endpoint", endpoint1Entry],
+        ["endpoint2", endpoint2Entry]
     ]);
 
     describe("return no cached data", () => {
@@ -54,6 +60,9 @@ describe("getCachedQuads", () => {
             expect(isResult(resultOrError)).toBe(true);
             const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
             expect(result.value).toBeUndefined();
+
+            expect(cacheHit).toHaveBeenCalled();
+            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY,expect.any(Object), {sources: endpoints});
         });
 
         it("should return no cache data given a cache hit algorithm that is slower than the timeout", async () => {
@@ -78,6 +87,9 @@ describe("getCachedQuads", () => {
             expect(isResult(resultOrError)).toBe(true);
             const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
             expect(result.value).toBeUndefined();
+
+            expect(cacheHit).toHaveBeenCalled();
+            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY,expect.any(Object), {sources: endpoints});
         });
 
         it("should return no cache data given an empty cache", async () => {
@@ -96,12 +108,14 @@ describe("getCachedQuads", () => {
             expect(isResult(resultOrError)).toBe(true);
             const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
             expect(result.value).toBeUndefined();
+
+            expect(cacheHit).not.toHaveBeenCalled();
         });
 
     });
 
     describe("return a cache", () => {
-        it("should return an entry given a cache it function that always hit", async () => {
+        it("should return an entry given a cache hit function that always hit", async () => {
             const endpoints = ["endpoint"];
             const cacheHit = mock().mockResolvedValue({ value: true });
             const input: ICacheQueryInput = {
@@ -117,6 +131,78 @@ describe("getCachedQuads", () => {
             expect(isResult(resultOrError)).toBe(true);
             const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
             expect(result.value).toBeDefined();
+            expect(result.value.algorithmIndex).toBe(0);
+
+            expect(cacheHit).toHaveBeenCalled();
+            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY,expect.any(Object), {sources: endpoints});
+        });
+
+        it("should return an entry given multiple cache hit function with one hitting the cache", async () => {
+            const endpoints = ["endpoint"];
+            const cacheMiss1 = mock().mockResolvedValue({ value: false });
+            const cacheMiss2 = mock().mockResolvedValue({ value: false });
+            const cacheMiss3 = mock().mockResolvedValue({ value: false });
+            const cacheHit = mock().mockResolvedValue({ value: true });
+            const input: ICacheQueryInput = {
+                cache: A_CACHE,
+                query: A_QUERY,
+                endpoints,
+                cacheHitAlgorithms: [
+                    { algorithm: cacheMiss1 },
+                    { algorithm: cacheMiss2 },
+                    { algorithm: cacheHit },
+                    { algorithm: cacheMiss3 }
+                ],
+                outputOption: OutputOption.URL
+            };
+
+            const resultOrError = await getCachedQuads(input);
+
+            expect(isResult(resultOrError)).toBe(true);
+            const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
+            expect(result.value).toBeDefined();
+            expect(result.value.algorithmIndex).toBe(2);
+
+            expect(cacheMiss1).toHaveBeenCalledTimes(2);
+            expect(cacheMiss1).toHaveBeenNthCalledWith(1, A_QUERY,expect.any(Object), {sources: endpoints});
+            expect(cacheMiss1).toHaveBeenNthCalledWith(2, A_QUERY,expect.any(Object), {sources: endpoints});
+
+            expect(cacheMiss2).toHaveBeenCalledTimes(2);
+            expect(cacheMiss2).toHaveBeenNthCalledWith(1, A_QUERY,expect.any(Object), {sources: endpoints});
+            expect(cacheMiss2).toHaveBeenNthCalledWith(2, A_QUERY,expect.any(Object), {sources: endpoints});
+
+            expect(cacheHit).toHaveBeenCalled();
+            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY,expect.any(Object), {sources: endpoints});
+
+            expect(cacheMiss3).not.toHaveBeenCalled();
         });
     });
+
+    describe("with the URL of a cache", ()=>{
+        beforeEach(()=>{
+
+        });
+        it("should return an entry given a cache hit function that always hit", async () => {
+            throw new Error();
+            const endpoints = ["endpoint"];
+            const cacheHit = mock().mockResolvedValue({ value: true });
+            const input: ICacheQueryInput = {
+                cache: A_CACHE,
+                query: A_QUERY,
+                endpoints,
+                cacheHitAlgorithms: [{ algorithm: cacheHit }],
+                outputOption: OutputOption.URL
+            };
+
+            const resultOrError = await getCachedQuads(input);
+
+            expect(isResult(resultOrError)).toBe(true);
+            const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
+            expect(result.value).toBeDefined();
+            expect(result.value.algorithmIndex).toBe(0);
+
+            expect(cacheHit).toHaveBeenCalled();
+            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY,expect.any(Object), {sources: endpoints});
+        });
+    })
 });
