@@ -1,5 +1,5 @@
 import { rdfDereferencer } from "rdf-dereference";
-import type { Result } from "./util";
+import { listOfEnpointsToString, type Result } from "./util";
 import * as Vocabulary from './vocabulary';
 import type * as RDF from '@rdfjs/types';
 
@@ -15,7 +15,7 @@ export async function parseCache(cacheUrl: Readonly<string>): Promise<Result<Rea
     const rdfLists: Map<string, IRDFList> = new Map();
 
     return new Promise(resolve => {
-        if(data.closed){
+        if (data.closed) {
             resolve({ value: new Map() });
         }
 
@@ -62,7 +62,7 @@ function collectRawCache(quad: Readonly<RDF.Quad>, cacheProcessesing: Readonly<M
         } else {
             entry.isACacheEntry = true;
         }
-    } else if (quad.predicate.equals(Vocabulary.QUERY_IRI_PREDICATE)) {
+    } else if (quad.predicate.equals(Vocabulary.QUERY_PREDICATE)) {
         if (entry === undefined) {
             cacheProcessesing.set(quad.subject.value, {
                 isACacheEntry: false,
@@ -99,21 +99,22 @@ function rawCacheToCache(rawCache: Readonly<Map<string, IRawCache>>, rdfLists: R
             rawCacheElement.results !== undefined &&
             rawCacheElement.endpoints !== undefined &&
             rawCacheElement.query !== undefined) {
-            let endpoints = getEndpointFromAnRdfList(rawCacheElement.endpoints, rdfLists);
-            endpoints = endpoints.reverse()
-            const targetEndpoint = endpoints.pop();
+            const endpoints = getEndpointFromAnRdfList(rawCacheElement.endpoints, rdfLists);
+            if (endpoints.length === 0) {
+                continue;
+            }
+            const targetEndpoint = listOfEnpointsToString(endpoints);
+
             const cacheEntry: ICacheElement = {
                 resultUrl: rawCacheElement.results,
                 endpoints
             };
-            if (targetEndpoint !== undefined) {
-                const cacheByEndpoint = cache.get(targetEndpoint);
-                if (cacheByEndpoint !== undefined) {
+            const cacheByEndpoint = cache.get(targetEndpoint);
+            if (cacheByEndpoint !== undefined) {
 
-                    cacheByEndpoint.set(rawCacheElement.query, cacheEntry);
-                } else {
-                    cache.set(targetEndpoint, new Map([[rawCacheElement.query, cacheEntry]]))
-                }
+                cacheByEndpoint.set(rawCacheElement.query, cacheEntry);
+            } else {
+                cache.set(targetEndpoint, new Map([[rawCacheElement.query, cacheEntry]]))
             }
         }
     }

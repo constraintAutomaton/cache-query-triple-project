@@ -28,3 +28,12 @@ export type IOptions = {
      */
     sources: string[],
 } & Record<string, any>;
+
+/**
+ * Convert a list of endpoint to the same string regardless of the order in the list.
+ * @param {string[]} endpoints
+ * @returns {string} 
+ */
+export function listOfEnpointsToString(endpoints: string[]): string {
+    return endpoints.sort((a, b) => a.localeCompare(b)).toString();
+}

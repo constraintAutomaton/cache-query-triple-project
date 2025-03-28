@@ -1,6 +1,6 @@
 import { type Algebra, translate } from 'sparqlalgebrajs';
-import { isError, isResult, RDF_FACTORY, type CacheHitFunction, type Result } from './util';
-import { parseCache, type Cache } from './parse_cache';
+import { isError, isResult, listOfEnpointsToString, RDF_FACTORY, type CacheHitFunction, type Result } from './util';
+import { parseCache, type Cache, type ICacheElement as ICacheEntry } from './parse_cache';
 import { SparqlJsonParser, type IBindings } from "sparqljson-parse";
 import * as pLimit from 'p-limit';
 
@@ -30,10 +30,13 @@ export async function getCachedQuads(input: Readonly<ICacheQueryInput>): Promise
 }
 
 async function getRelevantCacheEntry(
-    { cache, query, targetEndpoint, sources, cacheHitAlgorithms, outputOption, maxConcurentExecCacheHitAlgorithm }: Readonly<Omit<ICacheQueryInput, "cache"> & { cache: Cache }>
+    { cache, query, endpoints, cacheHitAlgorithms, outputOption, maxConcurentExecCacheHitAlgorithm }: Readonly<Omit<ICacheQueryInput, "cache"> & { cache: Cache }>
 ): Promise<Result<CacheResult | undefined, Error>> {
     // check if there are cache results with this target endpoint
-    const cacheForTarget = cache.get(targetEndpoint);
+    // if no targetEndpoint is defined then it is a federated queries over mutiple sources with no Service clause 
+    // then we need to evaluate the whole cache
+    const cacheForTarget = cache.get(listOfEnpointsToString(endpoints));
+
     if (cacheForTarget === undefined) {
         return { value: undefined };
     }
@@ -47,7 +50,9 @@ async function getRelevantCacheEntry(
         const operations: Map<string, Promise<[string, Result<boolean>]>> = new Map();
 
         // for each query in the cache
-        for (const [cachedQuery, { resultUrl }] of cacheForTarget) {
+        for (const [cachedQuery, { resultUrl, endpoints }] of cacheForTarget) {
+            // we skip the algorithm if the source are not equal in the cache if it is a federated query with no service clauses
+
             const checkOperation: Promise<[string, Result<boolean>]> = new Promise(async (resolve) => {
                 let timer: Timer | undefined;
                 if (time_limit) {
@@ -56,7 +61,7 @@ async function getRelevantCacheEntry(
                     }, time_limit);
                 }
 
-                const resp = await algorithm(query, translate(cachedQuery), { sources });
+                const resp = await algorithm(query, translate(cachedQuery), { sources: endpoints });
                 clearTimeout(timer);
 
                 resolve([resultUrl, resp]);
@@ -99,7 +104,6 @@ async function getRelevantCacheEntry(
             algorithmIndex: cachedResult.algorithmIndex
         }
     };
-
 }
 
 async function fetchJsonSPARQL(url: string): Promise<Result<IBindings[], Error>> {
@@ -145,8 +149,10 @@ export interface ICacheQueryInput {
      * The query that we are trying to retrieve from the cache.
      */
     query: Algebra.Operation,
-    targetEndpoint: string,
-    sources: string[],
+    /**
+     * Sources of the query, can be left empty if service clauses are used.
+     */
+    endpoints: string[],
     /**
     * An array of cache hit algorithms with associated time limits (in milliseconds).
     * If the timeout is exceeded, the cache hit function is considered to return false.
@@ -157,7 +163,9 @@ export interface ICacheQueryInput {
      * If set to undefined then an unlimited number of execution can be launch.
      */
     maxConcurentExecCacheHitAlgorithm?: number,
-
+    /**
+     * The output format of the cache if it hit.
+     */
     outputOption: OutputOption
 }
 /**

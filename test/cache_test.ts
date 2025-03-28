@@ -9,7 +9,6 @@ describe("getCachedQuads", () => {
     const A_QUERY = translate("SELECT * WHERE {?s ?p ?o.}");
     const A_CACHE_QUERY = "SELECT * WHERE {?s1 ?p1 ?o1.}";
     const ANOTHER_CACHE_QUERY = "SELECT * WHERE {?s2 ?p2 ?o2.}";
-    const SOURCES: string[] = [];
 
     const endpoint1Entry: Map<string, ICacheElement> = new Map([
         [A_CACHE_QUERY, { resultUrl: "R0", endpoints: ["endpoint0", "endpoint0P"] }],
@@ -22,13 +21,12 @@ describe("getCachedQuads", () => {
 
     describe("return no cached data", () => {
         it("should return no cache data given no cache hit algorithm provided", async () => {
-            const targetEndpoint = "endpoint";
+            const endpoints = ["endpoint"];
 
             const input: ICacheQueryInput = {
                 cache: A_CACHE,
                 query: A_QUERY,
-                targetEndpoint,
-                sources: SOURCES,
+                endpoints,
                 cacheHitAlgorithms: [],
                 outputOption: OutputOption.URL
             };
@@ -41,13 +39,12 @@ describe("getCachedQuads", () => {
         });
 
         it("should return no cache data given a cache hit algorithm that return always false", async () => {
-            const targetEndpoint = "endpoint";
+            const endpoints = ["endpoint"];
             const cacheHit = mock().mockResolvedValue({ value: false });
             const input: ICacheQueryInput = {
                 cache: A_CACHE,
                 query: A_QUERY,
-                targetEndpoint,
-                sources: SOURCES,
+                endpoints,
                 cacheHitAlgorithms: [{ algorithm: cacheHit }],
                 outputOption: OutputOption.URL
             };
@@ -60,7 +57,7 @@ describe("getCachedQuads", () => {
         });
 
         it("should return no cache data given a cache hit algorithm that is slower than the timeout", async () => {
-            const targetEndpoint = "endpoint";
+            const endpoints = ["endpoint"];
             const cacheHit = mock(() => {
                 return new Promise((resolve) => {
                     setTimeout(() => {
@@ -71,8 +68,7 @@ describe("getCachedQuads", () => {
             const input: ICacheQueryInput = {
                 cache: A_CACHE,
                 query: A_QUERY,
-                targetEndpoint,
-                sources: SOURCES,
+                endpoints,
                 cacheHitAlgorithms: [{ algorithm: <any>cacheHit, time_limit: 100 }],
                 outputOption: OutputOption.URL
             };
@@ -85,13 +81,12 @@ describe("getCachedQuads", () => {
         });
 
         it("should return no cache data given an empty cache", async () => {
-            const targetEndpoint = "endpoint";
+            const endpoints = ["endpoint"];
             const cacheHit = mock().mockResolvedValue({ value: true });
             const input: ICacheQueryInput = {
                 cache: new Map(),
                 query: A_QUERY,
-                targetEndpoint,
-                sources: SOURCES,
+                endpoints,
                 cacheHitAlgorithms: [{ algorithm: cacheHit }],
                 outputOption: OutputOption.URL
             };
@@ -107,13 +102,12 @@ describe("getCachedQuads", () => {
 
     describe("return a cache", () => {
         it("should return an entry given a cache it function that always hit", async () => {
-            const targetEndpoint = "endpoint";
+            const endpoints = ["endpoint"];
             const cacheHit = mock().mockResolvedValue({ value: true });
             const input: ICacheQueryInput = {
                 cache: A_CACHE,
                 query: A_QUERY,
-                targetEndpoint,
-                sources: SOURCES,
+                endpoints,
                 cacheHitAlgorithms: [{ algorithm: cacheHit }],
                 outputOption: OutputOption.URL
             };
