@@ -1,9 +1,16 @@
-import { expect, describe, mock, it, beforeEach } from "bun:test";
+import { expect, describe, mock, it, beforeEach, type Mock, spyOn } from "bun:test";
 import { getCachedQuads, OutputOption, type CacheResult, type ICacheQueryInput } from "../lib/cache";
 import type { ICacheEntry, Cache } from "../lib/parse_cache";
 import { translate } from 'sparqlalgebrajs';
-import { isResult } from 'result-interface';
+import { isError, isResult, type IError } from 'result-interface';
+import * as ParseCache from '../lib/parse_cache';
+import { SparqlJsonParser } from "sparqljson-parse";
+import { RDF_FACTORY } from "../lib/util";
 
+const SPARQL_JSON_PARSER = new SparqlJsonParser({
+    dataFactory: RDF_FACTORY,
+    prefixVariableQuestionMark: false,
+});
 
 describe(getCachedQuads.name, () => {
     const A_QUERY = translate("SELECT * WHERE {?s ?p ?o.}");
@@ -185,10 +192,11 @@ describe(getCachedQuads.name, () => {
 
         it("should return an entry given a cache hit function that always hit", async () => {
             const endpoints = ["endpoint"];
+            spyOn(ParseCache, "parseCache").mockResolvedValueOnce({ value: A_CACHE });
 
             const cacheHit = mock().mockResolvedValue({ value: true });
             const input: ICacheQueryInput = {
-                cache: A_CACHE,
+                cache: "cache",
                 query: A_QUERY,
                 endpoints,
                 cacheHitAlgorithms: [{ algorithm: cacheHit }],
@@ -200,10 +208,174 @@ describe(getCachedQuads.name, () => {
             expect(isResult(resultOrError)).toBe(true);
             const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
             expect(result.value).toBeDefined();
+            expect(result.value).toStrictEqual({
+                algorithmIndex: 0,
+                cache: expect.any(String)
+            });
             expect(result.value.algorithmIndex).toBe(0);
 
             expect(cacheHit).toHaveBeenCalled();
             expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY, expect.any(Object), { sources: endpoints });
         });
-    })
+
+        it("should return no cache data given a cache hit algorithm that return always false", async () => {
+            const endpoints = ["endpoint"];
+            spyOn(ParseCache, "parseCache").mockResolvedValueOnce({ value: A_CACHE });
+
+            const cacheHit = mock().mockResolvedValue({ value: false });
+            const input: ICacheQueryInput = {
+                cache: "cache",
+                query: A_QUERY,
+                endpoints,
+                cacheHitAlgorithms: [{ algorithm: cacheHit }],
+                outputOption: OutputOption.URL
+            };
+
+            const resultOrError = await getCachedQuads(input);
+
+            expect(isResult(resultOrError)).toBe(true);
+            const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
+            expect(result.value).toBeUndefined();
+
+            expect(cacheHit).toHaveBeenCalled();
+            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY, expect.any(Object), { sources: endpoints });
+        });
+
+        it("should return an error given an invalid cache URL", async () => {
+            const endpoints = ["endpoint"];
+            spyOn(ParseCache, "parseCache").mockResolvedValueOnce({ error: new Error("foo") });
+
+            const cacheHit = mock().mockResolvedValue({ value: false });
+            const input: ICacheQueryInput = {
+                cache: "cache",
+                query: A_QUERY,
+                endpoints,
+                cacheHitAlgorithms: [{ algorithm: cacheHit }],
+                outputOption: OutputOption.URL
+            };
+
+            const resultOrError = await getCachedQuads(input);
+
+            expect(isError(resultOrError)).toBe(true);
+
+            expect(<IError>resultOrError).toStrictEqual({
+                error: new Error("foo")
+            });
+        });
+    });
+
+    describe("returning a cached binding bag", () => {
+        beforeEach(() => {
+            mock.restore();
+        });
+
+        it("should return an entry given a cache hit function that always hit", async () => {
+            const endpoints = ["endpoint"];
+            const sparqlJsonString = `
+                {
+                "head": { "vars": [ "book" , "title" ]
+                } ,
+                "results": { 
+                    "bindings": [
+                    {
+                        "book": { "type": "uri" , "value": "http://example.org/book/book6" } ,
+                        "title": { "type": "literal" , "value": "Harry Potter and the Half-Blood Prince" }
+                    } ,
+                    {
+                        "book": { "type": "uri" , "value": "http://example.org/book/book7" } ,
+                        "title": { "type": "literal" , "value": "Harry Potter and the Deathly Hallows" }
+                    } ,
+                    {
+                        "book": { "type": "uri" , "value": "http://example.org/book/book5" } ,
+                        "title": { "type": "literal" , "value": "Harry Potter and the Order of the Phoenix" }
+                    } ,
+                    {
+                        "book": { "type": "uri" , "value": "http://example.org/book/book4" } ,
+                        "title": { "type": "literal" , "value": "Harry Potter and the Goblet of Fire" }
+                    } ,
+                    {
+                        "book": { "type": "uri" , "value": "http://example.org/book/book2" } ,
+                        "title": { "type": "literal" , "value": "Harry Potter and the Chamber of Secrets" }
+                    } ,
+                    {
+                        "book": { "type": "uri" , "value": "http://example.org/book/book3" } ,
+                        "title": { "type": "literal" , "value": "Harry Potter and the Prisoner Of Azkaban" }
+                    } ,
+                    {
+                        "book": { "type": "uri" , "value": "http://example.org/book/book1" } ,
+                        "title": { "type": "literal" , "value": "Harry Potter and the Philosopher's Stone" }
+                    }
+                    ]
+                }
+                }`;
+            const expectedBindings = SPARQL_JSON_PARSER.parseJsonResults(JSON.parse(sparqlJsonString));
+
+            spyOn(global, "fetch").mockResolvedValueOnce(<any>{
+                json: mock().mockResolvedValueOnce(JSON.parse(sparqlJsonString))
+            });
+            const cacheHit = mock().mockResolvedValue({ value: true });
+            const input: ICacheQueryInput = {
+                cache: A_CACHE,
+                query: A_QUERY,
+                endpoints,
+                cacheHitAlgorithms: [{ algorithm: cacheHit }],
+                outputOption: OutputOption.BINDING_BAG
+            };
+
+            const resultOrError = await getCachedQuads(input);
+            expect(isResult(resultOrError)).toBe(true);
+            const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
+            expect(result.value).toBeDefined();
+            expect(result.value).toStrictEqual({
+                algorithmIndex: 0,
+                cache: expectedBindings
+            });
+            expect(result.value.algorithmIndex).toBe(0);
+
+            expect(cacheHit).toHaveBeenCalled();
+            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY, expect.any(Object), { sources: endpoints });
+        });
+
+        it("should return an error given the fetch call failed", async () => {
+            const endpoints = ["endpoint"];
+
+            spyOn(global, "fetch").mockRejectedValueOnce(new Error("foo"));
+            const cacheHit = mock().mockResolvedValue({ value: true });
+            const input: ICacheQueryInput = {
+                cache: A_CACHE,
+                query: A_QUERY,
+                endpoints,
+                cacheHitAlgorithms: [{ algorithm: cacheHit }],
+                outputOption: OutputOption.BINDING_BAG
+            };
+
+            const resultOrError = await getCachedQuads(input);
+            expect(isError(resultOrError)).toBe(true);
+            expect(<IError>resultOrError).toStrictEqual({
+                error: new Error("foo")
+            })
+        });
+
+        it("should return an error given the fetch document is not a json", async () => {
+            const endpoints = ["endpoint"];
+
+            spyOn(global, "fetch").mockResolvedValue(<any>{
+                json: mock().mockRejectedValueOnce(new Error("foo"))
+            });
+            const cacheHit = mock().mockResolvedValue({ value: true });
+            const input: ICacheQueryInput = {
+                cache: A_CACHE,
+                query: A_QUERY,
+                endpoints,
+                cacheHitAlgorithms: [{ algorithm: cacheHit }],
+                outputOption: OutputOption.BINDING_BAG
+            };
+
+            const resultOrError = await getCachedQuads(input);
+            expect(isError(resultOrError)).toBe(true);
+            expect(<IError>resultOrError).toStrictEqual({
+                error: new Error("foo")
+            })
+        });
+    });
 });

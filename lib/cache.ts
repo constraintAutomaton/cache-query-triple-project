@@ -3,7 +3,7 @@ import { listOfEnpointsToString, RDF_FACTORY, type CacheHitFunction } from './ut
 import { parseCache, type Cache } from './parse_cache';
 import { SparqlJsonParser, type IBindings } from "sparqljson-parse";
 import * as pLimit from 'p-limit';
-import { isError, isResult, type Result, type SafePromise } from 'result-interface';
+import { createSafePromise, isError, isResult, type Result, type SafePromise } from 'result-interface';
 
 const SPARQL_JSON_PARSER = new SparqlJsonParser({
     dataFactory: RDF_FACTORY,
@@ -106,22 +106,21 @@ async function getRelevantCacheEntry(
 }
 
 async function fetchJsonSPARQL(url: string): SafePromise<IBindings[], Error> {
-    return new Promise(resolve => {
-        fetch(url)
-            .then(data => data.json())
-            .then(json => {
-                try {
-                    resolve({ value: SPARQL_JSON_PARSER.parseJsonResults(json) });
-                } catch (error: unknown) {
-                    if (error instanceof Error) {
-                        resolve({ error });
-                    } else {
-                        resolve({ error: new Error(`there was an error of unknown type ${error}`) });
-                    }
-                }
-            })
-            .catch((error) => resolve({ error }));
-    });
+    const resp = await createSafePromise(fetch(url));
+    if (isError(resp)) {
+        // should return errors
+        return {
+            error: <Error>resp.error
+        }
+    }
+    const respJson = await createSafePromise(resp.value.json());
+    if (isError(respJson)) {
+        // should return errors
+        return {
+            error: <Error>respJson.error
+        }
+    }
+    return { value: SPARQL_JSON_PARSER.parseJsonResults(respJson.value) };
 }
 
 function isNotPartialCacheResult<C extends string | IBindings[]>(cacheResult: Readonly<Partial<ICacheResult<C>>>): cacheResult is ICacheResult<C> {

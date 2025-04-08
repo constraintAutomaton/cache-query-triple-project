@@ -69,6 +69,9 @@ describe(parseCache.name, () => {
         <foo2> <${Vocabulary.QUERY_PREDICATE.value}> <bar> ;
             <${Vocabulary.RESULT_IRI_PREDICATE.value}> <fooR> ;
             a <${Vocabulary.QUERY_CLASS.value}>.
+        <foo3> a <${Vocabulary.QUERY_CLASS.value}> ;
+            <${Vocabulary.RESULT_IRI_PREDICATE.value}> <fooR> ;
+            <${Vocabulary.ENDPOINT_PREDICATE.value}> ("endpoint1" "endpoint2" "endpoint3").
         `;
 
         const triplesStream = rdfParser.parse(Streamify(string_triples), { contentType: 'text/turtle' });

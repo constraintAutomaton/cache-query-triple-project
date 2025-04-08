@@ -112,7 +112,6 @@ function rawCacheToCache(rawCache: Map<string, IRawCache>, rdfLists: Map<string,
             };
             const cacheByEndpoint = cache.get(targetEndpoint);
             if (cacheByEndpoint !== undefined) {
-
                 cacheByEndpoint.set(rawCacheElement.query, cacheEntry);
             } else {
                 cache.set(targetEndpoint, new Map([[rawCacheElement.query, cacheEntry]]))
@@ -125,8 +124,6 @@ function rawCacheToCache(rawCache: Map<string, IRawCache>, rdfLists: Map<string,
 function getEndpointFromAnRdfList(root: string, rdfLists: Map<string, IRDFList>): Readonly<string[]> {
     const endpoints: string[] = [];
     let current = root;
-    const maxLenght = 100_000;
-    let i = 0;
     do {
         const listElement = rdfLists.get(current);
         if (listElement === undefined) {
@@ -140,8 +137,7 @@ function getEndpointFromAnRdfList(root: string, rdfLists: Map<string, IRDFList>)
             break;
         }
         current = rest;
-        i += 1;
-    } while (current !== Vocabulary.LAST_ELEMENT_LIST.value || i < maxLenght);
+    } while (current !== Vocabulary.LAST_ELEMENT_LIST.value );
     return endpoints;
 }
 
