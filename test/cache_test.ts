@@ -1,8 +1,8 @@
-import { expect, describe, mock, it, beforeEach, spyOn } from "bun:test";
+import { expect, describe, mock, it, beforeEach } from "bun:test";
 import { getCachedQuads, OutputOption, type CacheResult, type ICacheQueryInput } from "../lib/cache";
 import type { ICacheEntry, Cache } from "../lib/parse_cache";
 import { translate } from 'sparqlalgebrajs';
-import { isResult, listOfEnpointsToString, type IOptions } from "../lib/util";
+import { isResult } from 'result-interface';
 
 
 describe(getCachedQuads.name, () => {
@@ -62,7 +62,7 @@ describe(getCachedQuads.name, () => {
             expect(result.value).toBeUndefined();
 
             expect(cacheHit).toHaveBeenCalled();
-            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY,expect.any(Object), {sources: endpoints});
+            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY, expect.any(Object), { sources: endpoints });
         });
 
         it("should return no cache data given a cache hit algorithm that is slower than the timeout", async () => {
@@ -89,7 +89,7 @@ describe(getCachedQuads.name, () => {
             expect(result.value).toBeUndefined();
 
             expect(cacheHit).toHaveBeenCalled();
-            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY,expect.any(Object), {sources: endpoints});
+            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY, expect.any(Object), { sources: endpoints });
         });
 
         it("should return no cache data given an empty cache", async () => {
@@ -134,7 +134,7 @@ describe(getCachedQuads.name, () => {
             expect(result.value.algorithmIndex).toBe(0);
 
             expect(cacheHit).toHaveBeenCalled();
-            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY,expect.any(Object), {sources: endpoints});
+            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY, expect.any(Object), { sources: endpoints });
         });
 
         it("should return an entry given multiple cache hit function with one hitting the cache", async () => {
@@ -164,27 +164,28 @@ describe(getCachedQuads.name, () => {
             expect(result.value.algorithmIndex).toBe(2);
 
             expect(cacheMiss1).toHaveBeenCalledTimes(2);
-            expect(cacheMiss1).toHaveBeenNthCalledWith(1, A_QUERY,expect.any(Object), {sources: endpoints});
-            expect(cacheMiss1).toHaveBeenNthCalledWith(2, A_QUERY,expect.any(Object), {sources: endpoints});
+            expect(cacheMiss1).toHaveBeenNthCalledWith(1, A_QUERY, expect.any(Object), { sources: endpoints });
+            expect(cacheMiss1).toHaveBeenNthCalledWith(2, A_QUERY, expect.any(Object), { sources: endpoints });
 
             expect(cacheMiss2).toHaveBeenCalledTimes(2);
-            expect(cacheMiss2).toHaveBeenNthCalledWith(1, A_QUERY,expect.any(Object), {sources: endpoints});
-            expect(cacheMiss2).toHaveBeenNthCalledWith(2, A_QUERY,expect.any(Object), {sources: endpoints});
+            expect(cacheMiss2).toHaveBeenNthCalledWith(1, A_QUERY, expect.any(Object), { sources: endpoints });
+            expect(cacheMiss2).toHaveBeenNthCalledWith(2, A_QUERY, expect.any(Object), { sources: endpoints });
 
             expect(cacheHit).toHaveBeenCalled();
-            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY,expect.any(Object), {sources: endpoints});
+            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY, expect.any(Object), { sources: endpoints });
 
             expect(cacheMiss3).not.toHaveBeenCalled();
         });
     });
 
-    describe("with the URL of a cache", ()=>{
-        beforeEach(()=>{
-
+    describe("with the URL of a cache", () => {
+        beforeEach(() => {
+            mock.restore();
         });
+
         it("should return an entry given a cache hit function that always hit", async () => {
-            throw new Error();
             const endpoints = ["endpoint"];
+
             const cacheHit = mock().mockResolvedValue({ value: true });
             const input: ICacheQueryInput = {
                 cache: A_CACHE,
@@ -202,7 +203,7 @@ describe(getCachedQuads.name, () => {
             expect(result.value.algorithmIndex).toBe(0);
 
             expect(cacheHit).toHaveBeenCalled();
-            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY,expect.any(Object), {sources: endpoints});
+            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY, expect.any(Object), { sources: endpoints });
         });
     })
 });

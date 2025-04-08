@@ -17,6 +17,7 @@
     "p-limit": "^6.2.0",
     "rdf-data-factory": "^2.0.2",
     "rdf-dereference": "^4.0.0",
+    "result-interface": "^1.0.5",
     "sparqlalgebrajs": "^5.0.1",
     "sparqljson-parse": "^3.0.0"
   },

@@ -1,14 +1,15 @@
 import { rdfDereferencer } from "rdf-dereference";
-import { listOfEnpointsToString, type Result } from "./util";
+import { listOfEnpointsToString } from "./util";
 import * as Vocabulary from './vocabulary';
 import type * as RDF from '@rdfjs/types';
+import type { SafePromise } from "result-interface";
 
 /**
  * Parse a remote cache of query into a Javascript object.
- * @param {Readonly<string>} cacheUrl - The URL of the cache RDF resource.
- * @returns {Promise<Result<Cache, Error>>} - A cache object or an error. The promise is never rejected.
+ * @param {string} cacheUrl - The URL of the cache RDF resource.
+ * @returns {SafePromise<Cache, Error>} - A cache object or an error. The promise is never rejected.
  */
-export async function parseCache(cacheUrl: Readonly<string>): Promise<Result<Readonly<Cache>, Error>> {
+export async function parseCache(cacheUrl: string): SafePromise<Cache, Error> {
     const { data } = await rdfDereferencer.dereference(cacheUrl);
 
     const cacheProcessesing: Map<string, IRawCache> = new Map();
@@ -34,7 +35,7 @@ export async function parseCache(cacheUrl: Readonly<string>): Promise<Result<Rea
     });
 }
 
-function collectRawCache(quad: Readonly<RDF.Quad>, cacheProcessesing: Readonly<Map<string, IRawCache>>, rdfLists: Readonly<Map<string, IRDFList>>) {
+function collectRawCache(quad: Readonly<RDF.Quad>, cacheProcessesing: Map<string, IRawCache>, rdfLists: Map<string, IRDFList>) {
     // get the information about the RDF list
     const rdfListElement = rdfLists.get(quad.subject.value);
     if (quad.predicate.equals(Vocabulary.ELEMENT_OF_LIST_PREDICATE)) {
@@ -92,7 +93,7 @@ function collectRawCache(quad: Readonly<RDF.Quad>, cacheProcessesing: Readonly<M
     }
 }
 
-function rawCacheToCache(rawCache: Readonly<Map<string, IRawCache>>, rdfLists: Readonly<Map<string, IRDFList>>): Readonly<Cache> {
+function rawCacheToCache(rawCache: Map<string, IRawCache>, rdfLists: Map<string, IRDFList>): Cache {
     const cache: Cache = new Map();
     for (const rawCacheElement of rawCache.values()) {
         if (rawCacheElement.isACacheEntry &&
@@ -121,7 +122,7 @@ function rawCacheToCache(rawCache: Readonly<Map<string, IRawCache>>, rdfLists: R
     return cache;
 }
 
-function getEndpointFromAnRdfList(root: Readonly<string>, rdfLists: Readonly<Map<string, IRDFList>>): string[] {
+function getEndpointFromAnRdfList(root: string, rdfLists: Map<string, IRDFList>): Readonly<string[]> {
     const endpoints: string[] = [];
     let current = root;
     const maxLenght = 100_000;
@@ -156,11 +157,11 @@ export interface ICacheEntry {
     /**
      * The URL of the result resource
      */
-    resultUrl: Readonly<string>,
+    resultUrl: string,
     /**
      * The URL of the endpoints in the federation excluding the target endpoint.
      */
-    endpoints: Readonly<string[]>
+    endpoints: readonly string[]
 }
 
 interface IRawCache {

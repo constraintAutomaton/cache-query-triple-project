@@ -2,9 +2,10 @@ import { expect, describe, mock, it, beforeEach } from "bun:test";
 import { ArrayIterator, AsyncIterator, fromArray } from "asynciterator";
 import type * as RDF from '@rdfjs/types';
 import { parseCache, type Cache } from "../lib/parse_cache";
-import { isError, isResult, listOfEnpointsToString } from "../lib/util";
+import { listOfEnpointsToString } from "../lib/util";
 import * as Vocabulary from '../lib/vocabulary';
 import { rdfParser } from "rdf-parse";
+import { isError, isResult } from 'result-interface';
 import Streamify from 'streamify-string';
 
 let quadStream: AsyncIterator<RDF.Quad> = fromArray(new Array<RDF.Quad>());
@@ -217,7 +218,7 @@ describe(parseCache.name, () => {
         const entryQueryFoo = entryEndpoint4?.get("foo");
         expect(entryQueryFoo).toBeDefined();
 
-        expect(new Set(entryQueryFoo?.endpoints)).toStrictEqual(new Set(["endpoint4","endpoint5"]));
+        expect(new Set(entryQueryFoo?.endpoints)).toStrictEqual(new Set(["endpoint4", "endpoint5"]));
         expect(entryQueryFoo?.resultUrl).toBe("fooR2");
     });
 });
