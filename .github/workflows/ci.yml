@@ -1,0 +1,29 @@
+name: unit-test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Bun
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: bun install
+
+      # Step 4: Run tests with Bun
+      - name: Run tests
+        run: bun test
