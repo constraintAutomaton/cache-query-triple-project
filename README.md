@@ -1,5 +1,12 @@
 # sparql-cache-client
 
+
+![npm version](https://img.shields.io/npm/v/sparql-cache-client)
+![Unit Tests Status](https://img.shields.io/github/actions/workflow/status/constraintAutomaton/cache-query-triple-project/ci.yml?label=unit+test
+)
+![Lint](https://img.shields.io/github/actions/workflow/status/constraintAutomaton/cache-query-triple-project/format.yml?label=linter
+)
+
 A TypeScript library for working with remote SPARQL query result caches.
 
 It allows you to:
