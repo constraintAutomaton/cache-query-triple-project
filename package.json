@@ -2,10 +2,11 @@
   "name": "sparql-cache-client",
   "module": "index.ts",
   "type": "module",
+  "version": "0.0.0",
   "author": {
     "name": "Bryan-Elliott Tam"
   },
-  "description": "A library for retrieving cached SPARQL query information from a remote cache",
+  "description": "A TypeScript library for working with remote SPARQL query result caches.",
   "exports": {
     ".": {
       "import": "./dist/index.js",
