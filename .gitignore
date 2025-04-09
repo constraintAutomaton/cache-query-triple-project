@@ -177,3 +177,5 @@ dist
 debug
 
 coverage
+
+.vscode
