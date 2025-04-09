@@ -2,6 +2,24 @@
   "name": "cache_query_processing",
   "module": "index.ts",
   "type": "module",
+  "author": {
+    "name": "Bryan-Elliott Tam"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "keywords": [
+    "SPARQL",
+    "caching",
+    "RDF"
+  ],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "devDependencies": {
     "@types/bun": "latest",
     "asynciterator": "^3.9.0",
@@ -30,7 +48,9 @@
   "scripts": {
     "debug": "bun test --inspect-wait=localhost:6499/",
     "lint": "eslint 'lib/**/*.{ts,tsx}'",
-    "format": "prettier --write 'lib/**/*.{ts,tsx,json}'"
+    "format": "prettier --write 'lib/**/*.{ts,tsx,json}'",
+    "build": "bun build ./lib/index.ts --outdir dist --sourcemap && tsc --emitDeclarationOnly",
+    "publish-npm": "bun run build && npm publish"
   },
   "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
 }
