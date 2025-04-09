@@ -176,3 +176,9 @@ console.log(`Cache result is available at: ${cacheResult.value?.cache}`);
 ```
 bun test
 ```
+
+## Idea
+
+- Make the parsing of cache work with local files
+- Give the option to start reading the cache while it is parsing
+- Give the option to use web worker to run the cache hit algorithms
