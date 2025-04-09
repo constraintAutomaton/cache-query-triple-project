@@ -187,7 +187,7 @@ export interface ICacheQueryInput {
    */
   query: Readonly<Algebra.Operation>;
   /**
-   * Sources of the query, can be left empty if service clauses are used.
+   * Sources of the query not specified in SERVICE clauses.
    */
   endpoints: readonly string[];
   /**

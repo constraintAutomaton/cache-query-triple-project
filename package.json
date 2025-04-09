@@ -1,10 +1,11 @@
 {
-  "name": "cache_query_processing",
+  "name": "sparql-cache-client",
   "module": "index.ts",
   "type": "module",
   "author": {
     "name": "Bryan-Elliott Tam"
   },
+  "description": "A library for retrieving cached SPARQL query information from a remote cache",
   "exports": {
     ".": {
       "import": "./dist/index.js",
