@@ -176,6 +176,9 @@ console.log(`Cache result is available at: ${cacheResult.value?.cache}`);
 ```
 bun test
 ```
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for more information.
 
 ## Idea
 
