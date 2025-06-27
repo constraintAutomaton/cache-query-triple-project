@@ -2,7 +2,7 @@
   "name": "sparql-cache-client",
   "module": "index.ts",
   "type": "module",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "license": "MIT",
   "homepage": "https://github.com/constraintAutomaton/cache-query-triple-project/",
   "author": {
@@ -11,7 +11,8 @@
   "description": "A TypeScript library for working with remote SPARQL query result caches.",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
       "types": "./dist/index.d.ts"
     }
   },
@@ -53,9 +54,11 @@
   "scripts": {
     "debug": "bun test --inspect-wait=localhost:6499/",
     "lint": "eslint 'lib/**/*.{ts,tsx}'",
+    "build:all" : "bun run build && bun run build:cjs && tsc --emitDeclarationOnly",
+    "build": "bun build ./lib/index.ts --outdir dist --sourcemap --outdir dist/esm --production",
+    "build:cjs": "bun build ./lib/index.ts --format 'cjs' --outdir dist/cjs --sourcemap --production",
     "format": "prettier --write 'lib/**/*.{ts,tsx,json}'",
-    "build": "bun build ./lib/index.ts --outdir dist --sourcemap && tsc --emitDeclarationOnly",
-    "publish-npm": "bun run build && npm publish"
+    "publish-npm": "bun run build:all && npm publish"
   },
   "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
 }
