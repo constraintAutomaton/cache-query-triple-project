@@ -2,7 +2,7 @@
   "name": "sparql-cache-client",
   "module": "index.ts",
   "type": "module",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "license": "MIT",
   "homepage": "https://github.com/constraintAutomaton/cache-query-triple-project/",
   "author": {
@@ -12,10 +12,10 @@
   "exports": {
     ".": {
       "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/cjs/index.js"
     }
   },
+  "types": "./dist/index.d.ts",
   "keywords": [
     "SPARQL",
     "caching",

@@ -20,6 +20,14 @@ const SPARQL_JSON_PARSER = new SparqlJsonParser({
   prefixVariableQuestionMark: false,
 });
 
+export async function getCachedQuads(
+  input: Readonly<ICacheQueryInputBinding>,
+): SafePromise<ICacheResult<IBindings[]> | undefined, Error>;
+
+export async function getCachedQuads(
+  input: Readonly<ICacheQueryInputUrl>,
+): SafePromise<ICacheResult<string> | undefined, Error>;
+
 /**
  * Get cached quads if the selected cache hit algorithm hit.
  * @param {Readonly<ICacheQueryInput>} input - input arguments
@@ -174,6 +182,13 @@ export enum OutputOption {
   BINDING_BAG,
 }
 
+interface ICacheQueryInputBinding extends ICacheQueryInput {
+  outputOption: OutputOption.BINDING_BAG
+}
+
+interface ICacheQueryInputUrl extends ICacheQueryInput {
+  outputOption: OutputOption.URL
+}
 /**
  * Input argument for getting information from a cache.
  */
