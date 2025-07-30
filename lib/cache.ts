@@ -182,11 +182,11 @@ export enum OutputOption {
   BINDING_BAG,
 }
 
-interface ICacheQueryInputBinding extends ICacheQueryInput {
+export interface ICacheQueryInputBinding extends ICacheQueryInput {
   outputOption: OutputOption.BINDING_BAG
 }
 
-interface ICacheQueryInputUrl extends ICacheQueryInput {
+export interface ICacheQueryInputUrl extends ICacheQueryInput {
   outputOption: OutputOption.URL
 }
 /**
