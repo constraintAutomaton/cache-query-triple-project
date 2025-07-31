@@ -3,14 +3,24 @@ import { listOfEnpointsToString } from './util';
 import * as Vocabulary from './vocabulary';
 import type * as RDF from '@rdfjs/types';
 import type { SafePromise } from 'result-interface';
+import type { Readable } from 'readable-stream';
+
+export type CacheLocation = { url: string } | { path: string };
 
 /**
  * Parse a remote cache of query into a Javascript object.
- * @param {string} cacheUrl - The URL of the cache RDF resource.
+ * @param {string} cacheLocation - The URL of the cache RDF resource.
  * @returns {SafePromise<Cache, Error>} - A cache object or an error. The promise is never rejected.
  */
-export async function parseCache(cacheUrl: string): SafePromise<Cache, Error> {
-  const { data } = await rdfDereferencer.dereference(cacheUrl);
+export async function parseCache(cacheLocation: CacheLocation): SafePromise<Cache, Error> {
+  let data: RDF.Stream<RDF.Quad> & Readable|undefined;
+  if('url' in cacheLocation){
+    const { data:d } = await rdfDereferencer.dereference(cacheLocation.url);
+    data = d
+  }else{
+    const { data:d } = await rdfDereferencer.dereference(cacheLocation.path, { localFiles: true });
+    data = d
+  }
 
   const cacheProcessesing: Map<string, IRawCache> = new Map();
   const rdfLists: Map<string, IRDFList> = new Map();

@@ -4,7 +4,7 @@ import {
   RDF_FACTORY,
   type CacheHitFunction,
 } from './util';
-import { parseCache, type Cache } from './parse_cache';
+import { parseCache, type Cache, type CacheLocation } from './parse_cache';
 import { SparqlJsonParser, type IBindings } from 'sparqljson-parse';
 import * as pLimit from 'p-limit';
 import {
@@ -28,6 +28,10 @@ export async function getCachedQuads(
   input: Readonly<ICacheQueryInputUrl>,
 ): SafePromise<ICacheResult<string> | undefined, Error>;
 
+export async function getCachedQuads(
+  input: Readonly<ICacheQueryInput>,
+): SafePromise<ICacheResult<string> | undefined, Error>;
+
 /**
  * Get cached quads if the selected cache hit algorithm hit.
  * @param {Readonly<ICacheQueryInput>} input - input arguments
@@ -37,7 +41,7 @@ export async function getCachedQuads(
   input: Readonly<ICacheQueryInput>,
 ): SafePromise<CacheResult | undefined, Error> {
   let cache: Cache | undefined;
-  if (typeof input.cache === 'string') {
+  if ('path' in input.cache || 'url' in input.cache) {
     const cacheResp = await parseCache(input.cache);
     if (isError(cacheResp)) {
       return { error: cacheResp.error };
@@ -196,7 +200,7 @@ export interface ICacheQueryInput {
   /**
    * A cache. Can be a cache object or an URL
    */
-  cache: Cache | string;
+  cache: Cache | CacheLocation;
   /**
    * The query that we are trying to retrieve from the cache.
    */

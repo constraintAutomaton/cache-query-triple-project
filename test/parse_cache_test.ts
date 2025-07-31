@@ -34,14 +34,14 @@ describe(parseCache.name, () => {
                 }
             }
         }
-        const result = await parseCache("foo");
+        const result = await parseCache({ path: "foo" });
         expect(isError(result)).toBe(true);
         const error: Error = (<any>result).error;
         expect(error).toStrictEqual(iteratorError);
     });
 
     it("should return an empty cache given a resource having no triples", async () => {
-        const result = await parseCache("foo");
+        const result = await parseCache({ url: "foo" });
         expect(isResult(result)).toBe(true);
         const cache: Cache = (<any>result).value;
         expect(cache.size).toBe(0);
@@ -55,7 +55,7 @@ describe(parseCache.name, () => {
         const triples = await triplesStream.toArray();
         quadStream = new ArrayIterator(triples, { autoStart: false });
 
-        const result = await parseCache("foo");
+        const result = await parseCache({url: "foo"});
         expect(isResult(result)).toBe(true);
         let cache: Cache = (<any>result).value;
         expect(cache.size).toBe(0);
@@ -79,7 +79,7 @@ describe(parseCache.name, () => {
 
         quadStream = new ArrayIterator(triples, { autoStart: false });
 
-        const result = await parseCache("foo");
+        const result = await parseCache({path: "foo"});
         expect(isResult(result)).toBe(true);
         let cache: Cache = (<any>result).value;
         expect(cache.size).toBe(0);
@@ -98,7 +98,7 @@ describe(parseCache.name, () => {
 
         quadStream = new ArrayIterator(triples, { autoStart: false });
 
-        const result = await parseCache("foo");
+        const result = await parseCache({url: "foo"});
         expect(isResult(result)).toBe(true);
         let cache: Cache = (<any>result).value;
         expect(cache.size).toBe(0);
@@ -117,7 +117,7 @@ describe(parseCache.name, () => {
 
         quadStream = new ArrayIterator(triples, { autoStart: false });
 
-        const result = await parseCache("foo");
+        const result = await parseCache({path: "foo"});
         expect(isResult(result)).toBe(true);
         let cache: Cache = (<any>result).value;
 
@@ -154,7 +154,7 @@ describe(parseCache.name, () => {
 
         quadStream = new ArrayIterator(triples, { autoStart: false });
 
-        const result = await parseCache("foo");
+        const result = await parseCache({url:"foo"});
         expect(isResult(result)).toBe(true);
         let cache: Cache = (<any>result).value;
 
@@ -193,7 +193,7 @@ describe(parseCache.name, () => {
 
         quadStream = new ArrayIterator(triples, { autoStart: false });
 
-        const result = await parseCache("foo");
+        const result = await parseCache({path: "foo"});
         expect(isResult(result)).toBe(true);
         let cache: Cache = (<any>result).value;
 

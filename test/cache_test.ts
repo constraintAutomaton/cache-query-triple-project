@@ -196,12 +196,12 @@ describe(getCachedQuads.name, () => {
 
             const cacheHit = mock().mockResolvedValue({ value: true });
             const input: ICacheQueryInput = {
-                cache: "cache",
+                cache: { url: "cache" },
                 query: A_QUERY,
                 endpoints,
                 cacheHitAlgorithms: [{ algorithm: cacheHit }],
                 outputOption: OutputOption.URL
-            };
+            } as const;
 
             const resultOrError = await getCachedQuads(input);
 
@@ -224,7 +224,7 @@ describe(getCachedQuads.name, () => {
 
             const cacheHit = mock().mockResolvedValue({ value: false });
             const input: ICacheQueryInput = {
-                cache: "cache",
+                cache: { url: "cache" },
                 query: A_QUERY,
                 endpoints,
                 cacheHitAlgorithms: [{ algorithm: cacheHit }],
@@ -247,7 +247,7 @@ describe(getCachedQuads.name, () => {
 
             const cacheHit = mock().mockResolvedValue({ value: false });
             const input: ICacheQueryInput = {
-                cache: "cache",
+                cache: { url: "cache" },
                 query: A_QUERY,
                 endpoints,
                 cacheHitAlgorithms: [{ algorithm: cacheHit }],
