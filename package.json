@@ -2,7 +2,7 @@
   "name": "sparql-cache-client",
   "module": "index.ts",
   "type": "module",
-  "version": "0.0.8",
+  "version": "0.1.0",
   "license": "MIT",
   "homepage": "https://github.com/constraintAutomaton/cache-query-triple-project/",
   "author": {
