@@ -30,7 +30,7 @@ export async function getCachedQuads(
 
 export async function getCachedQuads(
   input: Readonly<ICacheQueryInput>,
-): SafePromise<ICacheResult<string> | undefined, Error>;
+): SafePromise<ICacheResult<string|IBindings[]> | undefined, Error>;
 
 /**
  * Get cached quads if the selected cache hit algorithm hit.
