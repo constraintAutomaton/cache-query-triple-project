@@ -6,19 +6,19 @@ import type { SafePromise } from 'result-interface';
 import type { Readable } from 'readable-stream';
 
 export type CacheLocation = { url: string } | { path: string };
-
+export type JsonResultLocation = CacheLocation;
 /**
  * Parse a remote cache of query into a Javascript object.
  * @param {string} cacheLocation - The URL of the cache RDF resource.
  * @returns {SafePromise<Cache, Error>} - A cache object or an error. The promise is never rejected.
  */
 export async function parseCache(cacheLocation: CacheLocation): SafePromise<Cache, Error> {
-  let data: RDF.Stream<RDF.Quad> & Readable|undefined;
-  if('url' in cacheLocation){
-    const { data:d } = await rdfDereferencer.dereference(cacheLocation.url);
+  let data: RDF.Stream<RDF.Quad> & Readable | undefined;
+  if ('url' in cacheLocation) {
+    const { data: d } = await rdfDereferencer.dereference(cacheLocation.url);
     data = d
-  }else{
-    const { data:d } = await rdfDereferencer.dereference(cacheLocation.path, { localFiles: true });
+  } else {
+    const { data: d } = await rdfDereferencer.dereference(cacheLocation.path, { localFiles: true });
     data = d
   }
 
@@ -93,10 +93,14 @@ function collectRawCache(
     if (entry === undefined) {
       cacheProcessesing.set(quad.subject.value, {
         isACacheEntry: false,
-        results: quad.object.value,
+        results: quad.object.termType === "NamedNode"? {url: quad.object.value}: {path: quad.object.value},
       });
     } else {
-      entry.results = quad.object.value;
+      if (quad.object.termType === "NamedNode") {
+        entry.results = {url: quad.object.value};
+      }else{
+        entry.results = {path: quad.object.value};
+      }
     }
   } else if (quad.predicate.equals(Vocabulary.ENDPOINT_PREDICATE)) {
     if (entry === undefined) {
@@ -184,7 +188,7 @@ export interface ICacheEntry {
   /**
    * The URL of the result resource
    */
-  resultUrl: string;
+  resultUrl: JsonResultLocation;
   /**
    * The URL of the endpoints in the federation excluding the target endpoint.
    */
@@ -194,7 +198,7 @@ export interface ICacheEntry {
 interface IRawCache {
   query?: string;
   endpoints?: string;
-  results?: string;
+  results?: JsonResultLocation;
   isACacheEntry: boolean;
 }
 

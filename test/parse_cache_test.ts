@@ -107,7 +107,7 @@ describe(parseCache.name, () => {
     it("should return a cache entry given a resource having a full cache definition", async () => {
         const string_triples = `
         <foo>  <${Vocabulary.QUERY_PREDICATE.value}> <bar> ;
-            <${Vocabulary.RESULT_IRI_PREDICATE.value}> <fooR> ;
+            <${Vocabulary.RESULT_IRI_PREDICATE.value}> "fooR" ;
             <${Vocabulary.ENDPOINT_PREDICATE.value}> ("endpoint1" "endpoint2" "endpoint3") ;
             a <${Vocabulary.QUERY_CLASS.value}> .
         `;
@@ -129,7 +129,7 @@ describe(parseCache.name, () => {
         expect(entryQuery).toBeDefined();
 
         expect(new Set(entryQuery?.endpoints)).toStrictEqual(new Set(["endpoint1", "endpoint2", "endpoint3"]));
-        expect(entryQuery?.resultUrl).toBe("fooR");
+        expect(entryQuery?.resultUrl).toStrictEqual({path: "fooR"});
     });
 
     it("should return a cache entry given a resource having a full cache definition with an RDF list with a special order", async () => {
@@ -166,7 +166,7 @@ describe(parseCache.name, () => {
         expect(entryQuery).toBeDefined();
 
         expect(new Set(entryQuery?.endpoints)).toStrictEqual(new Set(["endpoint1", "endpoint2", "endpoint3"]));
-        expect(entryQuery?.resultUrl).toBe("fooR");
+        expect(entryQuery?.resultUrl).toStrictEqual({url:"fooR"});
     });
 
     it("should return multiple cache entries given a resource having a full cache definitions", async () => {
@@ -178,7 +178,7 @@ describe(parseCache.name, () => {
             a <${Vocabulary.QUERY_CLASS.value}>.
         
         <foo1>  <${Vocabulary.ENDPOINT_PREDICATE.value}> ("endpoint1" "endpoint2" "endpoint3") ;
-            <${Vocabulary.RESULT_IRI_PREDICATE.value}> <fooR1> ;
+            <${Vocabulary.RESULT_IRI_PREDICATE.value}> "fooR1" ;
             <${Vocabulary.QUERY_PREDICATE.value}> <bar1> ;
             a <${Vocabulary.QUERY_CLASS.value}>.
 
@@ -206,13 +206,13 @@ describe(parseCache.name, () => {
         expect(entryQueryBar).toBeDefined();
 
         expect(new Set(entryQueryBar?.endpoints)).toStrictEqual(new Set(["endpoint1", "endpoint2", "endpoint3"]));
-        expect(entryQueryBar?.resultUrl).toBe("fooR");
+        expect(entryQueryBar?.resultUrl).toStrictEqual({url:"fooR"});
 
         const entryQueryBar1 = entryEndpoint1?.get("bar1");
         expect(entryQueryBar1).toBeDefined();
 
         expect(new Set(entryQueryBar1?.endpoints)).toStrictEqual(new Set(["endpoint1", "endpoint2", "endpoint3"]));
-        expect(entryQueryBar1?.resultUrl).toBe("fooR1");
+        expect(entryQueryBar1?.resultUrl).toStrictEqual({path:"fooR1"});
 
         const entryEndpoint4 = cache.get(listOfEnpointsToString(["endpoint4", "endpoint5"]));
         expect(entryEndpoint4).toBeDefined();
@@ -222,6 +222,6 @@ describe(parseCache.name, () => {
         expect(entryQueryFoo).toBeDefined();
 
         expect(new Set(entryQueryFoo?.endpoints)).toStrictEqual(new Set(["endpoint4", "endpoint5"]));
-        expect(entryQueryFoo?.resultUrl).toBe("fooR2");
+        expect(entryQueryFoo?.resultUrl).toStrictEqual({url:"fooR2"});
     });
 });

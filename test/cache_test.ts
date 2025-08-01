@@ -1,4 +1,4 @@
-import { expect, describe, mock, it, beforeEach, type Mock, spyOn } from "bun:test";
+import { expect, describe, mock, it, beforeEach, type Mock, spyOn, jest } from "bun:test";
 import { getCachedQuads, OutputOption, type CacheResult, type ICacheQueryInput } from "../lib/cache";
 import type { ICacheEntry, Cache } from "../lib/parse_cache";
 import { translate } from 'sparqlalgebrajs';
@@ -6,6 +6,12 @@ import { isError, isResult, type IError } from 'result-interface';
 import * as ParseCache from '../lib/parse_cache';
 import { SparqlJsonParser } from "sparqljson-parse";
 import { RDF_FACTORY } from "../lib/util";
+
+const mockReadFile = mock();
+
+mock.module('fs/promises', () => ({
+    readFile: mockReadFile
+}));
 
 const SPARQL_JSON_PARSER = new SparqlJsonParser({
     dataFactory: RDF_FACTORY,
@@ -18,13 +24,13 @@ describe(getCachedQuads.name, () => {
     const ANOTHER_CACHE_QUERY = "SELECT * WHERE {?s2 ?p2 ?o2.}";
 
     const endpoint1Entry: Map<string, ICacheEntry> = new Map([
-        [A_CACHE_QUERY, { resultUrl: "R0", endpoints: ["endpoint"] }],
-        [ANOTHER_CACHE_QUERY, { resultUrl: "R1", endpoints: ["endpoint"] }],
+        [A_CACHE_QUERY, { resultUrl: { url: "R0" }, endpoints: ["endpoint"] }],
+        [ANOTHER_CACHE_QUERY, { resultUrl: { path: "R1" }, endpoints: ["endpoint"] }],
     ]);
 
     const endpoint2Entry: Map<string, ICacheEntry> = new Map([
-        [A_CACHE_QUERY, { resultUrl: "R0", endpoints: ["endpoint2"] }],
-        [ANOTHER_CACHE_QUERY, { resultUrl: "R1", endpoints: ["endpoint2"] }],
+        [A_CACHE_QUERY, { resultUrl: { url: "R0" }, endpoints: ["endpoint2"] }],
+        [ANOTHER_CACHE_QUERY, { resultUrl: { path: "R1" }, endpoints: ["endpoint2"] }],
     ]);
 
     const A_CACHE: Cache = new Map([
@@ -210,7 +216,9 @@ describe(getCachedQuads.name, () => {
             expect(result.value).toBeDefined();
             expect(result.value).toStrictEqual({
                 algorithmIndex: 0,
-                cache: expect.any(String)
+                cache: {
+                    url:"R0"
+                }
             });
             expect(result.value.algorithmIndex).toBe(0);
 
@@ -310,9 +318,8 @@ describe(getCachedQuads.name, () => {
                 }`;
             const expectedBindings = SPARQL_JSON_PARSER.parseJsonResults(JSON.parse(sparqlJsonString));
 
-            spyOn(global, "fetch").mockResolvedValueOnce(<any>{
-                json: mock().mockResolvedValueOnce(JSON.parse(sparqlJsonString))
-            });
+            mockReadFile.mockReturnValueOnce(sparqlJsonString)
+
             const cacheHit = mock().mockResolvedValue({ value: true });
             const input: ICacheQueryInput = {
                 cache: A_CACHE,
