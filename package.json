@@ -1,8 +1,8 @@
 {
   "name": "sparql-cache-client",
-  "module": "index.ts",
+  "module": "./dist/esm/index.js",
   "type": "module",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "license": "MIT",
   "homepage": "https://github.com/constraintAutomaton/cache-query-triple-project/",
   "author": {
@@ -12,9 +12,10 @@
   "exports": {
     ".": {
       "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js"
+      "require": "./dist/cjs/index.cjs"
     }
   },
+  "main": "./dist/cjs/index.cjs",
   "types": "./dist/index.d.ts",
   "keywords": [
     "SPARQL",
@@ -56,7 +57,7 @@
     "lint": "eslint 'lib/**/*.{ts,tsx}'",
     "build:all" : "bun run build && bun run build:cjs && tsc --emitDeclarationOnly",
     "build": "bun build ./lib/index.ts --outdir dist --sourcemap --outdir dist/esm --production",
-    "build:cjs": "bun build ./lib/index.ts --format 'cjs' --outdir dist/cjs --sourcemap --production",
+    "build:cjs": "bun build ./lib/index.ts --format cjs --outdir ./dist/cjs --sourcemap --production && mv ./dist/cjs/index.js ./dist/cjs/index.cjs",
     "format": "prettier --write 'lib/**/*.{ts,tsx,json}'",
     "publish-npm": "bun run build:all && npm publish"
   },
