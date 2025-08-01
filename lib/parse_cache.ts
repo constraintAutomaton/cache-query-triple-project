@@ -5,7 +5,13 @@ import type * as RDF from '@rdfjs/types';
 import type { SafePromise } from 'result-interface';
 import type { Readable } from 'readable-stream';
 
+/**
+ * The location of a cache
+ */
 export type CacheLocation = { url: string } | { path: string };
+/**
+ * The location of a JSON result
+ */
 export type JsonResultLocation = CacheLocation;
 /**
  * Parse a remote cache of query into a Javascript object.
