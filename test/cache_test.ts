@@ -33,9 +33,18 @@ describe(getCachedQuads.name, () => {
         [ANOTHER_CACHE_QUERY, { resultUrl: { path: "R1" }, endpoints: ["endpoint2"] }],
     ]);
 
+    const endpoint3Entry: Map<string, ICacheEntry> = new Map([
+        [A_CACHE_QUERY, { resultUrl: { path: "R0" }, endpoints: ["endpoint"] }],
+        [ANOTHER_CACHE_QUERY, { resultUrl: { path: "R1" }, endpoints: ["endpoint"] }],
+    ]);
+
     const A_CACHE: Cache = new Map([
         ["endpoint", endpoint1Entry],
         ["endpoint2", endpoint2Entry]
+    ]);
+
+    const ANOTHER_CACHE: Cache = new Map([
+        ["endpoint", endpoint3Entry],
     ]);
 
     describe("return no cached data", () => {
@@ -217,7 +226,7 @@ describe(getCachedQuads.name, () => {
             expect(result.value).toStrictEqual({
                 algorithmIndex: 0,
                 cache: {
-                    url:"R0"
+                    url: "R0"
                 }
             });
             expect(result.value.algorithmIndex).toBe(0);
@@ -318,7 +327,9 @@ describe(getCachedQuads.name, () => {
                 }`;
             const expectedBindings = SPARQL_JSON_PARSER.parseJsonResults(JSON.parse(sparqlJsonString));
 
-            mockReadFile.mockReturnValueOnce(sparqlJsonString)
+            spyOn(global, "fetch").mockResolvedValueOnce(<any>{
+                json: mock().mockResolvedValueOnce(JSON.parse(sparqlJsonString))
+            });
 
             const cacheHit = mock().mockResolvedValue({ value: true });
             const input: ICacheQueryInput = {
@@ -330,6 +341,74 @@ describe(getCachedQuads.name, () => {
             };
 
             const resultOrError = await getCachedQuads(input);
+            console.log(resultOrError);
+            expect(isResult(resultOrError)).toBe(true);
+            const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
+            expect(result.value).toBeDefined();
+            expect(result.value).toStrictEqual({
+                algorithmIndex: 0,
+                cache: expectedBindings
+            });
+            expect(result.value.algorithmIndex).toBe(0);
+
+            expect(cacheHit).toHaveBeenCalled();
+            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY, expect.any(Object), { sources: endpoints });
+        });
+
+        it("should return an entry given a cache hit function that hit for a result in a local path", async () => {
+            const endpoints = ["endpoint"];
+            const sparqlJsonString = `
+                {
+                "head": { "vars": [ "book" , "title" ]
+                } ,
+                "results": { 
+                    "bindings": [
+                    {
+                        "book": { "type": "uri" , "value": "http://example.org/book/book6" } ,
+                        "title": { "type": "literal" , "value": "Harry Potter and the Half-Blood Prince" }
+                    } ,
+                    {
+                        "book": { "type": "uri" , "value": "http://example.org/book/book7" } ,
+                        "title": { "type": "literal" , "value": "Harry Potter and the Deathly Hallows" }
+                    } ,
+                    {
+                        "book": { "type": "uri" , "value": "http://example.org/book/book5" } ,
+                        "title": { "type": "literal" , "value": "Harry Potter and the Order of the Phoenix" }
+                    } ,
+                    {
+                        "book": { "type": "uri" , "value": "http://example.org/book/book4" } ,
+                        "title": { "type": "literal" , "value": "Harry Potter and the Goblet of Fire" }
+                    } ,
+                    {
+                        "book": { "type": "uri" , "value": "http://example.org/book/book2" } ,
+                        "title": { "type": "literal" , "value": "Harry Potter and the Chamber of Secrets" }
+                    } ,
+                    {
+                        "book": { "type": "uri" , "value": "http://example.org/book/book3" } ,
+                        "title": { "type": "literal" , "value": "Harry Potter and the Prisoner Of Azkaban" }
+                    } ,
+                    {
+                        "book": { "type": "uri" , "value": "http://example.org/book/book1" } ,
+                        "title": { "type": "literal" , "value": "Harry Potter and the Philosopher's Stone" }
+                    }
+                    ]
+                }
+                }`;
+            const expectedBindings = SPARQL_JSON_PARSER.parseJsonResults(JSON.parse(sparqlJsonString));
+
+            mockReadFile.mockResolvedValueOnce(sparqlJsonString);
+
+            const cacheHit = mock().mockResolvedValue({ value: false }).mockResolvedValue({ value: true });
+            const input: ICacheQueryInput = {
+                cache: ANOTHER_CACHE,
+                query: A_QUERY,
+                endpoints,
+                cacheHitAlgorithms: [{ algorithm: cacheHit }],
+                outputOption: OutputOption.BINDING_BAG
+            };
+
+            const resultOrError = await getCachedQuads(input);
+            console.log(resultOrError);
             expect(isResult(resultOrError)).toBe(true);
             const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
             expect(result.value).toBeDefined();

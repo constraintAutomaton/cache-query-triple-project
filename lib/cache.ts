@@ -111,6 +111,7 @@ async function getRelevantCacheEntry({
           resolve([resultLocation, resp]);
         },
       );
+      
       operations.set(
         "url" in resultLocation ? resultLocation.url : resultLocation.path,
         limitPromises(() => checkOperation),
@@ -183,7 +184,7 @@ async function fetchJsonSPARQL(location: JsonResultLocation): SafePromise<IBindi
   }
 
 
-  return { value: SPARQL_JSON_PARSER.parseJsonResults(respJson.value) };
+  return { value: SPARQL_JSON_PARSER.parseJsonResults(respJson) };
 }
 
 function isNotPartialCacheResult<C extends JsonResultLocation | IBindings[]>(
