@@ -4,6 +4,7 @@ import * as Vocabulary from './vocabulary';
 import type * as RDF from '@rdfjs/types';
 import type { SafePromise } from 'result-interface';
 import type { Readable } from 'readable-stream';
+import * as Path from "path"
 
 /**
  * The location of a cache
@@ -24,7 +25,9 @@ export async function parseCache(cacheLocation: CacheLocation): SafePromise<Cach
     const { data: d } = await rdfDereferencer.dereference(cacheLocation.url);
     data = d
   } else {
-    const { data: d } = await rdfDereferencer.dereference(cacheLocation.path, { localFiles: true });
+    console.log("here");
+    console.log(cacheLocation.path);
+    const { data: d } = await rdfDereferencer.dereference("./cache.ttl" /**Path.resolve(cacheLocation.path)*/, { localFiles: true });
     data = d
   }
 
