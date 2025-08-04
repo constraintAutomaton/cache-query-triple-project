@@ -12,14 +12,18 @@ export type CacheLocation = { url: string } | { path: string };
  * @param {string} cacheLocation - The URL of the cache RDF resource.
  * @returns {SafePromise<Cache, Error>} - A cache object or an error. The promise is never rejected.
  */
-export async function parseCache(cacheLocation: CacheLocation): SafePromise<Cache, Error> {
-  let data: RDF.Stream<RDF.Quad> & Readable|undefined;
-  if('url' in cacheLocation){
-    const { data:d } = await rdfDereferencer.dereference(cacheLocation.url);
-    data = d
-  }else{
-    const { data:d } = await rdfDereferencer.dereference(cacheLocation.path, { localFiles: true });
-    data = d
+export async function parseCache(
+  cacheLocation: CacheLocation,
+): SafePromise<Cache, Error> {
+  let data: (RDF.Stream<RDF.Quad> & Readable) | undefined;
+  if ('url' in cacheLocation) {
+    const { data: d } = await rdfDereferencer.dereference(cacheLocation.url);
+    data = d;
+  } else {
+    const { data: d } = await rdfDereferencer.dereference(cacheLocation.path, {
+      localFiles: true,
+    });
+    data = d;
   }
 
   const cacheProcessesing: Map<string, IRawCache> = new Map();
