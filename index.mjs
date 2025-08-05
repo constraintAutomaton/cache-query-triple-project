@@ -3,7 +3,7 @@ import {
 } from 'sparql-cache-client';
 import { rdfDereferencer } from 'rdf-dereference';
 
-const cacheLocation = { url: "cache.ttl" };
+const cacheLocation = { path: "./cache.ttl" };
 
 //const { data: d } = await rdfDereferencer.dereference(cacheLocation.path, { localFiles: true });
 //console.log(d);

@@ -22,12 +22,13 @@ export type JsonResultLocation = CacheLocation;
 export async function parseCache(cacheLocation: CacheLocation): SafePromise<Cache, Error> {
   let data: RDF.Stream<RDF.Quad> & Readable | undefined;
   if ('url' in cacheLocation) {
+    console.log("url")
     const { data: d } = await rdfDereferencer.dereference(cacheLocation.url);
     data = d
   } else {
     console.log("here");
     console.log(cacheLocation.path);
-    const { data: d } = await rdfDereferencer.dereference("./cache.ttl" /**Path.resolve(cacheLocation.path)*/, { localFiles: true });
+    const { data: d } = await rdfDereferencer.dereference("/home/bryanelliott/Documents/PhD/coding/triple_project/cache_query_processing/cache.ttl" /**Path.resolve(cacheLocation.path)*/, { localFiles: true });
     data = d
   }
 

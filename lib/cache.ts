@@ -8,7 +8,7 @@ import { parseCache, type Cache, type CacheLocation, type JsonResultLocation } f
 import { SparqlJsonParser, type IBindings } from 'sparqljson-parse';
 import * as pLimit from 'p-limit';
 import {
-  createSafePromise,
+  safePromise,
   isError,
   isResult,
   type Result,
@@ -157,14 +157,14 @@ async function getRelevantCacheEntry({
 async function fetchJsonSPARQL(location: JsonResultLocation): SafePromise<IBindings[], Error> {
   let respJson: any | undefined = undefined
   if ("url" in location) {
-    const resp = await createSafePromise(fetch(location.url));
+    const resp = await safePromise(fetch(location.url));
     if (isError(resp)) {
       // should return errors
       return {
         error: <Error>resp.error,
       };
     }
-    const jsonResult = await createSafePromise(resp.value.json());
+    const jsonResult = await safePromise(resp.value.json());
     if (isError(jsonResult)) {
       // should return errors
       return {
@@ -173,7 +173,7 @@ async function fetchJsonSPARQL(location: JsonResultLocation): SafePromise<IBindi
     }
     respJson = jsonResult.value;
   } else {
-    const resp = await createSafePromise(readFile(location.path, 'utf8'));
+    const resp = await safePromise(readFile(location.path, 'utf8'));
     if (isError(resp)) {
       // should return errors
       return {
