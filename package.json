@@ -56,8 +56,8 @@
     "debug": "bun test --inspect-wait=localhost:6499/",
     "lint": "eslint 'lib/**/*.{ts,tsx}'",
     "build:all" : "bun run build && bun run build:cjs && tsc --emitDeclarationOnly",
-    "build": "tsc",
-    "build:cjs": "tsc -p tsconfig.cjs.json && find dist/cjs -name '*.js' -exec sh -c 'mv \"$1\" \"${1%.js}.cjs\"' _ {} \\;",
+    "build": "bun build ./lib/index.ts --outdir dist --sourcemap --outdir dist/esm --production",
+    "build:cjs": "bun build ./lib/index.ts --format cjs --outdir ./dist/cjs --sourcemap --production && mv ./dist/cjs/index.js ./dist/cjs/index.cjs",
     "format": "prettier --write 'lib/**/*.{ts,tsx,json}'",
     "publish-npm": "bun run build:all && npm publish"
   },
