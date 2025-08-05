@@ -5,8 +5,14 @@ import type * as RDF from '@rdfjs/types';
 import type { SafePromise } from 'result-interface';
 import type { Readable } from 'readable-stream';
 
+/**
+ * The location of a cache
+ */
 export type CacheLocation = { url: string } | { path: string };
-
+/**
+ * The location of a JSON result
+ */
+export type JsonResultLocation = CacheLocation;
 /**
  * Parse a remote cache of query into a Javascript object.
  * @param {string} cacheLocation - The URL of the cache RDF resource.
@@ -97,10 +103,17 @@ function collectRawCache(
     if (entry === undefined) {
       cacheProcessesing.set(quad.subject.value, {
         isACacheEntry: false,
-        results: quad.object.value,
+        results:
+          quad.object.termType === 'NamedNode'
+            ? { url: quad.object.value }
+            : { path: quad.object.value },
       });
     } else {
-      entry.results = quad.object.value;
+      if (quad.object.termType === 'NamedNode') {
+        entry.results = { url: quad.object.value };
+      } else {
+        entry.results = { path: quad.object.value };
+      }
     }
   } else if (quad.predicate.equals(Vocabulary.ENDPOINT_PREDICATE)) {
     if (entry === undefined) {
@@ -188,7 +201,7 @@ export interface ICacheEntry {
   /**
    * The URL of the result resource
    */
-  resultUrl: string;
+  resultUrl: JsonResultLocation;
   /**
    * The URL of the endpoints in the federation excluding the target endpoint.
    */
@@ -198,7 +211,7 @@ export interface ICacheEntry {
 interface IRawCache {
   query?: string;
   endpoints?: string;
-  results?: string;
+  results?: JsonResultLocation;
   isACacheEntry: boolean;
 }
 

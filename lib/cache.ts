@@ -4,16 +4,22 @@ import {
   RDF_FACTORY,
   type CacheHitFunction,
 } from './util';
-import { parseCache, type Cache, type CacheLocation } from './parse_cache';
+import {
+  parseCache,
+  type Cache,
+  type CacheLocation,
+  type JsonResultLocation,
+} from './parse_cache';
 import { SparqlJsonParser, type IBindings } from 'sparqljson-parse';
 import * as pLimit from 'p-limit';
 import {
-  createSafePromise,
+  safePromise,
   isError,
   isResult,
   type Result,
   type SafePromise,
 } from 'result-interface';
+import { readFile } from 'fs/promises';
 
 const SPARQL_JSON_PARSER = new SparqlJsonParser({
   dataFactory: RDF_FACTORY,
@@ -26,11 +32,14 @@ export async function getCachedQuads(
 
 export async function getCachedQuads(
   input: Readonly<ICacheQueryInputUrl>,
-): SafePromise<ICacheResult<string> | undefined, Error>;
+): SafePromise<ICacheResult<JsonResultLocation> | undefined, Error>;
 
 export async function getCachedQuads(
   input: Readonly<ICacheQueryInput>,
-): SafePromise<ICacheResult<string | IBindings[]> | undefined, Error>;
+): SafePromise<
+  ICacheResult<JsonResultLocation | IBindings[]> | undefined,
+  Error
+>;
 
 /**
  * Get cached quads if the selected cache hit algorithm hit.
@@ -73,7 +82,7 @@ async function getRelevantCacheEntry({
   if (cacheForTarget === undefined) {
     return { value: undefined };
   }
-  const cachedResult: Partial<ICacheResult<string>> = {};
+  const cachedResult: Partial<ICacheResult<JsonResultLocation>> = {};
   const limitPromises = pLimit.default(
     maxConcurentExecCacheHitAlgorithm || Number.MAX_SAFE_INTEGER,
   );
@@ -86,19 +95,22 @@ async function getRelevantCacheEntry({
     // we will run in concurence the algorithm for each cache entry.
     const operations: Map<
       string,
-      Promise<[string, Result<boolean>]>
+      Promise<[JsonResultLocation, Result<boolean>]>
     > = new Map();
 
     // for each query in the cache
-    for (const [cachedQuery, { resultUrl, endpoints }] of cacheForTarget) {
+    for (const [
+      cachedQuery,
+      { resultUrl: resultLocation, endpoints },
+    ] of cacheForTarget) {
       // we skip the algorithm if the source are not equal in the cache if it is a federated query with no service clauses
 
-      const checkOperation: Promise<[string, Result<boolean>]> = new Promise(
-        async (resolve) => {
+      const checkOperation: Promise<[JsonResultLocation, Result<boolean>]> =
+        new Promise(async (resolve) => {
           let timer: Timer | undefined;
           if (time_limit) {
             timer = setTimeout(() => {
-              resolve([resultUrl, { value: false }]);
+              resolve([resultLocation, { value: false }]);
             }, time_limit);
           }
 
@@ -107,22 +119,24 @@ async function getRelevantCacheEntry({
           });
           clearTimeout(timer);
 
-          resolve([resultUrl, resp]);
-        },
-      );
+          resolve([resultLocation, resp]);
+        });
+
       operations.set(
-        resultUrl,
+        'url' in resultLocation ? resultLocation.url : resultLocation.path,
         limitPromises(() => checkOperation),
       );
     }
     // exit when one of the entries has hit the cache
     do {
-      const [resultUrl, result] = await Promise.race(operations.values());
+      const [resultLocation, result] = await Promise.race(operations.values());
       if (isResult(result) && result.value) {
-        cachedResult.cache = resultUrl;
+        cachedResult.cache = resultLocation;
         cachedResult.algorithmIndex = index;
       } else {
-        operations.delete(resultUrl);
+        operations.delete(
+          'url' in resultLocation ? resultLocation.url : resultLocation.path,
+        );
       }
     } while (operations.size > 0 && cachedResult.algorithmIndex === undefined);
 
@@ -152,25 +166,41 @@ async function getRelevantCacheEntry({
   };
 }
 
-async function fetchJsonSPARQL(url: string): SafePromise<IBindings[], Error> {
-  const resp = await createSafePromise(fetch(url));
-  if (isError(resp)) {
-    // should return errors
-    return {
-      error: <Error>resp.error,
-    };
+async function fetchJsonSPARQL(
+  location: JsonResultLocation,
+): SafePromise<IBindings[], Error> {
+  let respJson: any | undefined = undefined;
+  if ('url' in location) {
+    const resp = await safePromise(fetch(location.url));
+    if (isError(resp)) {
+      // should return errors
+      return {
+        error: <Error>resp.error,
+      };
+    }
+    const jsonResult = await safePromise(resp.value.json());
+    if (isError(jsonResult)) {
+      // should return errors
+      return {
+        error: <Error>jsonResult.error,
+      };
+    }
+    respJson = jsonResult.value;
+  } else {
+    const resp = await safePromise(readFile(location.path, 'utf8'));
+    if (isError(resp)) {
+      // should return errors
+      return {
+        error: <Error>resp.error,
+      };
+    }
+    respJson = JSON.parse(resp.value);
   }
-  const respJson = await createSafePromise(resp.value.json());
-  if (isError(respJson)) {
-    // should return errors
-    return {
-      error: <Error>respJson.error,
-    };
-  }
-  return { value: SPARQL_JSON_PARSER.parseJsonResults(respJson.value) };
+
+  return { value: SPARQL_JSON_PARSER.parseJsonResults(respJson) };
 }
 
-function isNotPartialCacheResult<C extends string | IBindings[]>(
+function isNotPartialCacheResult<C extends JsonResultLocation | IBindings[]>(
   cacheResult: Readonly<Partial<ICacheResult<C>>>,
 ): cacheResult is ICacheResult<C> {
   return (
@@ -230,7 +260,7 @@ export interface ICacheQueryInput {
 /**
  * A cache results
  */
-export interface ICacheResult<C extends string | IBindings[]> {
+export interface ICacheResult<C extends JsonResultLocation | IBindings[]> {
   /**
    * A cache results
    */
@@ -243,4 +273,6 @@ export interface ICacheResult<C extends string | IBindings[]> {
 /**
  * Cached quad
  */
-export type CacheResult = ICacheResult<IBindings[]> | ICacheResult<string>;
+export type CacheResult =
+  | ICacheResult<IBindings[]>
+  | ICacheResult<JsonResultLocation>;
