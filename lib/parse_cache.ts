@@ -1,8 +1,8 @@
-import { rdfDereferencer } from 'rdf-dereference';
+import { rdfDereferencer, type IDereferenceOptions } from 'rdf-dereference';
 import { listOfEnpointsToString } from './util';
 import * as Vocabulary from './vocabulary';
 import type * as RDF from '@rdfjs/types';
-import type { SafePromise } from 'result-interface';
+import { isError, safePromise, type IError, type SafePromise } from 'result-interface';
 import type { Readable } from 'readable-stream';
 
 /**
@@ -21,16 +21,25 @@ export type JsonResultLocation = CacheLocation;
 export async function parseCache(
   cacheLocation: CacheLocation,
 ): SafePromise<Cache, Error> {
-  let data: (RDF.Stream<RDF.Quad> & Readable) | undefined;
+  let location: string | undefined;
+  let options: IDereferenceOptions | undefined;
+
   if ('url' in cacheLocation) {
-    const { data: d } = await rdfDereferencer.dereference(cacheLocation.url);
-    data = d;
+    location = cacheLocation.url;
   } else {
-    const { data: d } = await rdfDereferencer.dereference(cacheLocation.path, {
+    location = cacheLocation.path;
+    options = {
       localFiles: true,
-    });
-    data = d;
+    };
   }
+
+  const dataOrError = await safePromise(rdfDereferencer.dereference(location, options));
+  if (isError(dataOrError)) {
+    // should return an error
+    return <IError<Error>>dataOrError;
+  }
+
+  const { value: { data } } = dataOrError;
 
   const cacheProcessesing: Map<string, IRawCache> = new Map();
   const rdfLists: Map<string, IRDFList> = new Map();
