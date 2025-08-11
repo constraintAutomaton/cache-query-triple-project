@@ -73,34 +73,7 @@ describe(getCachedQuads.name, () => {
                 cache: A_CACHE,
                 query: A_QUERY,
                 endpoints,
-                cacheHitAlgorithms: [{ algorithm: cacheHit }],
-                outputOption: OutputOption.URL
-            };
-
-            const resultOrError = await getCachedQuads(input);
-
-            expect(isResult(resultOrError)).toBe(true);
-            const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
-            expect(result.value).toBeUndefined();
-
-            expect(cacheHit).toHaveBeenCalled();
-            expect(cacheHit).toHaveBeenLastCalledWith(A_QUERY, expect.any(Object), { sources: endpoints });
-        });
-
-        it("should return no cache data given a cache hit algorithm that is slower than the timeout", async () => {
-            const endpoints = ["endpoint"];
-            const cacheHit = mock(() => {
-                return new Promise((resolve) => {
-                    setTimeout(() => {
-                        resolve({ value: true });
-                    }, 500 * 10_000);
-                });
-            })
-            const input: ICacheQueryInput = {
-                cache: A_CACHE,
-                query: A_QUERY,
-                endpoints,
-                cacheHitAlgorithms: [{ algorithm: <any>cacheHit, time_limit: 100 }],
+                cacheHitAlgorithms: [cacheHit],
                 outputOption: OutputOption.URL
             };
 
@@ -121,7 +94,7 @@ describe(getCachedQuads.name, () => {
                 cache: new Map(),
                 query: A_QUERY,
                 endpoints,
-                cacheHitAlgorithms: [{ algorithm: cacheHit }],
+                cacheHitAlgorithms: [cacheHit],
                 outputOption: OutputOption.URL
             };
 
@@ -144,7 +117,7 @@ describe(getCachedQuads.name, () => {
                 cache: A_CACHE,
                 query: A_QUERY,
                 endpoints,
-                cacheHitAlgorithms: [{ algorithm: cacheHit }],
+                cacheHitAlgorithms: [cacheHit],
                 outputOption: OutputOption.URL
             };
 
@@ -170,10 +143,10 @@ describe(getCachedQuads.name, () => {
                 query: A_QUERY,
                 endpoints,
                 cacheHitAlgorithms: [
-                    { algorithm: cacheMiss1 },
-                    { algorithm: cacheMiss2 },
-                    { algorithm: cacheHit },
-                    { algorithm: cacheMiss3 }
+                    cacheMiss1 ,
+                    cacheMiss2 ,
+                    cacheHit,
+                    cacheMiss3
                 ],
                 outputOption: OutputOption.URL
             };
@@ -214,7 +187,7 @@ describe(getCachedQuads.name, () => {
                 cache: { url: "cache" },
                 query: A_QUERY,
                 endpoints,
-                cacheHitAlgorithms: [{ algorithm: cacheHit }],
+                cacheHitAlgorithms: [cacheHit],
                 outputOption: OutputOption.URL
             } as const;
 
@@ -244,7 +217,7 @@ describe(getCachedQuads.name, () => {
                 cache: { url: "cache" },
                 query: A_QUERY,
                 endpoints,
-                cacheHitAlgorithms: [{ algorithm: cacheHit }],
+                cacheHitAlgorithms: [cacheHit],
                 outputOption: OutputOption.URL
             };
 
@@ -267,7 +240,7 @@ describe(getCachedQuads.name, () => {
                 cache: { url: "cache" },
                 query: A_QUERY,
                 endpoints,
-                cacheHitAlgorithms: [{ algorithm: cacheHit }],
+                cacheHitAlgorithms: [cacheHit],
                 outputOption: OutputOption.URL
             };
 
@@ -336,7 +309,7 @@ describe(getCachedQuads.name, () => {
                 cache: A_CACHE,
                 query: A_QUERY,
                 endpoints,
-                cacheHitAlgorithms: [{ algorithm: cacheHit }],
+                cacheHitAlgorithms: [cacheHit],
                 outputOption: OutputOption.BINDING_BAG
             };
 
@@ -403,7 +376,7 @@ describe(getCachedQuads.name, () => {
                 cache: ANOTHER_CACHE,
                 query: A_QUERY,
                 endpoints,
-                cacheHitAlgorithms: [{ algorithm: cacheHit }],
+                cacheHitAlgorithms: [cacheHit],
                 outputOption: OutputOption.BINDING_BAG
             };
 
@@ -431,7 +404,7 @@ describe(getCachedQuads.name, () => {
                 cache: A_CACHE,
                 query: A_QUERY,
                 endpoints,
-                cacheHitAlgorithms: [{ algorithm: cacheHit }],
+                cacheHitAlgorithms: [cacheHit],
                 outputOption: OutputOption.BINDING_BAG
             };
 
@@ -453,7 +426,7 @@ describe(getCachedQuads.name, () => {
                 cache: A_CACHE,
                 query: A_QUERY,
                 endpoints,
-                cacheHitAlgorithms: [{ algorithm: cacheHit }],
+                cacheHitAlgorithms: [cacheHit],
                 outputOption: OutputOption.BINDING_BAG
             };
 

@@ -69,7 +69,6 @@ async function getRelevantCacheEntry({
   endpoints,
   cacheHitAlgorithms,
   outputOption,
-  maxConcurentExecCacheHitAlgorithm,
 }: Readonly<Omit<ICacheQueryInput, 'cache'> & { cache: Cache }>): SafePromise<
   CacheResult | undefined,
   Error
@@ -83,62 +82,30 @@ async function getRelevantCacheEntry({
     return { value: undefined };
   }
   const cachedResult: Partial<ICacheResult<JsonResultLocation>> = {};
-  const limitPromises = pLimit.default(
-    maxConcurentExecCacheHitAlgorithm || Number.MAX_SAFE_INTEGER,
-  );
 
   //  Check the cache with each cache hit algoritm
   for (const [
     index,
-    { algorithm, time_limit },
+    algorithm,
   ] of cacheHitAlgorithms.entries()) {
     // we will run in concurence the algorithm for each cache entry.
-    const operations: Map<
-      string,
-      Promise<[JsonResultLocation, Result<boolean>]>
-    > = new Map();
 
     // for each query in the cache
     for (const [
       cachedQuery,
       { resultUrl: resultLocation, endpoints },
     ] of cacheForTarget) {
-      // we skip the algorithm if the source are not equal in the cache if it is a federated query with no service clauses
+      const resp = await algorithm(query, translate(cachedQuery), {
+        sources: endpoints,
+      });
 
-      const checkOperation: Promise<[JsonResultLocation, Result<boolean>]> =
-        new Promise(async (resolve) => {
-          let timer: Timer | undefined;
-          if (time_limit) {
-            timer = setTimeout(() => {
-              resolve([resultLocation, { value: false }]);
-            }, time_limit);
-          }
-
-          const resp = await algorithm(query, translate(cachedQuery), {
-            sources: endpoints,
-          });
-          clearTimeout(timer);
-
-          resolve([resultLocation, resp]);
-        });
-
-      operations.set(
-        'url' in resultLocation ? resultLocation.url : resultLocation.path,
-        limitPromises(() => checkOperation),
-      );
-    }
-    // exit when one of the entries has hit the cache
-    do {
-      const [resultLocation, result] = await Promise.race(operations.values());
-      if (isResult(result) && result.value) {
+      if (isResult(resp) && resp.value) {
         cachedResult.cache = resultLocation;
         cachedResult.algorithmIndex = index;
-      } else {
-        operations.delete(
-          'url' in resultLocation ? resultLocation.url : resultLocation.path,
-        );
+        break;
       }
-    } while (operations.size > 0 && cachedResult.algorithmIndex === undefined);
+
+    }
 
     if (cachedResult.cache !== undefined) {
       break;
@@ -243,15 +210,7 @@ export interface ICacheQueryInput {
    * An array of cache hit algorithms with associated time limits (in milliseconds).
    * If the timeout is exceeded, the cache hit function is considered to return false.
    */
-  cacheHitAlgorithms: readonly {
-    algorithm: CacheHitFunction;
-    time_limit?: number;
-  }[];
-  /**
-   * Maximum number of concurent execution of the cache hit algorithms.
-   * If set to undefined then an unlimited number of execution can be launch.
-   */
-  maxConcurentExecCacheHitAlgorithm?: number;
+  cacheHitAlgorithms: readonly CacheHitFunction[];
   /**
    * The output format of the cache if it hit.
    */
