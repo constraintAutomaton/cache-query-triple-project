@@ -148,13 +148,7 @@ const input: ICacheQueryInput = {
   query,
   // Only includes non-SERVICE endpoint(s)
   endpoints: ['https://sparql.rhea-db.org/sparql/'],
-  cacheHitAlgorithms: [
-    {
-      algorithm: simpleCacheHit,
-      time_limit: 1_000 // 1 second
-    }
-  ],
-  maxConcurentExecCacheHitAlgorithm: undefined,
+  cacheHitAlgorithms: [simpleCacheHit],
   // Request the URL of the cached result (instead of full result bindings)
   outputOption: OutputOption.URL
 };
