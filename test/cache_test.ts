@@ -198,6 +198,7 @@ describe(getCachedQuads.name, () => {
             expect(result.value).toBeDefined();
             expect(result.value).toStrictEqual({
                 algorithmIndex: 0,
+                query: translate(A_CACHE_QUERY),
                 cache: {
                     url: "R0"
                 }
@@ -320,6 +321,7 @@ describe(getCachedQuads.name, () => {
             expect(result.value).toBeDefined();
             expect(result.value).toStrictEqual({
                 algorithmIndex: 0,
+                query: translate(A_CACHE_QUERY),
                 cache: expectedBindings
             });
             expect(result.value.algorithmIndex).toBe(0);
@@ -387,6 +389,7 @@ describe(getCachedQuads.name, () => {
             expect(result.value).toBeDefined();
             expect(result.value).toStrictEqual({
                 algorithmIndex: 0,
+                query: translate(A_CACHE_QUERY),
                 cache: expectedBindings
             });
             expect(result.value.algorithmIndex).toBe(0);

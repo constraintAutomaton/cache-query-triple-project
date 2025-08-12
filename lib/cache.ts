@@ -102,6 +102,7 @@ async function getRelevantCacheEntry({
       if (isResult(resp) && resp.value) {
         cachedResult.cache = resultLocation;
         cachedResult.algorithmIndex = index;
+        cachedResult.query = translate(cachedQuery);
         break;
       }
 
@@ -127,8 +128,8 @@ async function getRelevantCacheEntry({
 
   return {
     value: {
+      ...cachedResult,
       cache: bindingsOrError.value,
-      algorithmIndex: cachedResult.algorithmIndex,
     },
   };
 }
@@ -228,6 +229,10 @@ export interface ICacheResult<C extends JsonResultLocation | IBindings[]> {
    * Index of the algorithm used to get cache result
    */
   algorithmIndex: number;
+  /**
+   * The query that was cache hit
+   */
+  query: Algebra.Operation;
 }
 /**
  * Cached quad
