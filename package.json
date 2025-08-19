@@ -10,6 +10,7 @@
   },
   "description": "A TypeScript library for working with remote SPARQL query result caches.",
   "exports": {
+    "./package.json": "./package.json",
     ".": {
       "import": {
         "types": "./dist/index.d.ts",
@@ -60,7 +61,7 @@
   "scripts": {
     "debug": "bun test --inspect-wait=localhost:6499/",
     "lint": "eslint 'lib/**/*.{ts,tsx}'",
-    "build:all" : "bun run build && bun run build:cjs && tsc --emitDeclarationOnly",
+    "build:all": "bun run build && bun run build:cjs && tsc --emitDeclarationOnly",
     "build": "bun build ./lib/index.ts --outdir dist --sourcemap --outdir dist/esm --production",
     "build:cjs": "bun build ./lib/index.ts --format cjs --outdir ./dist/cjs --sourcemap --production && mv ./dist/cjs/index.js ./dist/cjs/index.cjs",
     "format": "prettier --write 'lib/**/*.{ts,tsx,json}'",
