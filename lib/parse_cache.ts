@@ -3,7 +3,6 @@ import { listOfEnpointsToString } from './util';
 import * as Vocabulary from './vocabulary';
 import type * as RDF from '@rdfjs/types';
 import { isError, safePromise, type IError, type SafePromise } from 'result-interface';
-import type { Readable } from 'readable-stream';
 
 /**
  * The location of a cache
@@ -95,9 +94,10 @@ function collectRawCache(
     quad.object.equals(Vocabulary.QUERY_CLASS)
   ) {
     if (entry === undefined) {
-      cacheProcessesing.set(quad.subject.value, { isACacheEntry: true });
+      cacheProcessesing.set(quad.subject.value, { isACacheEntry: true, id: quad.subject });
     } else {
       entry.isACacheEntry = true;
+      entry.id = quad.subject;
     }
   } else if (quad.predicate.equals(Vocabulary.QUERY_PREDICATE)) {
     if (entry === undefined) {
@@ -146,6 +146,7 @@ function rawCacheToCache(
       rawCacheElement.isACacheEntry &&
       rawCacheElement.results !== undefined &&
       rawCacheElement.endpoints !== undefined &&
+      rawCacheElement.id !== undefined &&
       rawCacheElement.query !== undefined
     ) {
       const endpoints = getEndpointFromAnRdfList(
@@ -158,6 +159,7 @@ function rawCacheToCache(
       const targetEndpoint = listOfEnpointsToString(endpoints);
 
       const cacheEntry: ICacheEntry = {
+        id:rawCacheElement.id,
         resultUrl: rawCacheElement.results,
         endpoints,
       };
@@ -215,6 +217,10 @@ export interface ICacheEntry {
    * The URL of the endpoints in the federation excluding the target endpoint.
    */
   endpoints: readonly string[];
+  /**
+   * The ID of the query.
+   */
+  id: RDF.Term;
 }
 
 interface IRawCache {
@@ -222,6 +228,7 @@ interface IRawCache {
   endpoints?: string;
   results?: JsonResultLocation;
   isACacheEntry: boolean;
+  id?: RDF.Term
 }
 
 interface IRDFList {

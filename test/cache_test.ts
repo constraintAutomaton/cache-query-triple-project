@@ -24,18 +24,18 @@ describe(getCachedQuads.name, () => {
     const ANOTHER_CACHE_QUERY = "SELECT * WHERE {?s2 ?p2 ?o2.}";
 
     const endpoint1Entry: Map<string, ICacheEntry> = new Map([
-        [A_CACHE_QUERY, { resultUrl: { url: "R0" }, endpoints: ["endpoint"] }],
-        [ANOTHER_CACHE_QUERY, { resultUrl: { path: "R1" }, endpoints: ["endpoint"] }],
+        [A_CACHE_QUERY, { resultUrl: { url: "R0" }, endpoints: ["endpoint"], id: RDF_FACTORY.namedNode("R0") }],
+        [ANOTHER_CACHE_QUERY, { resultUrl: { path: "R1" }, endpoints: ["endpoint"], id: RDF_FACTORY.namedNode("R1") }],
     ]);
 
     const endpoint2Entry: Map<string, ICacheEntry> = new Map([
-        [A_CACHE_QUERY, { resultUrl: { url: "R0" }, endpoints: ["endpoint2"] }],
-        [ANOTHER_CACHE_QUERY, { resultUrl: { path: "R1" }, endpoints: ["endpoint2"] }],
+        [A_CACHE_QUERY, { resultUrl: { url: "R0" }, endpoints: ["endpoint2"], id: RDF_FACTORY.namedNode("R0") }],
+        [ANOTHER_CACHE_QUERY, { resultUrl: { path: "R1" }, endpoints: ["endpoint2"], id: RDF_FACTORY.namedNode("R1") }],
     ]);
 
     const endpoint3Entry: Map<string, ICacheEntry> = new Map([
-        [A_CACHE_QUERY, { resultUrl: { path: "R0" }, endpoints: ["endpoint"] }],
-        [ANOTHER_CACHE_QUERY, { resultUrl: { path: "R1" }, endpoints: ["endpoint"] }],
+        [A_CACHE_QUERY, { resultUrl: { path: "R0" }, endpoints: ["endpoint"], id: RDF_FACTORY.namedNode("R0") }],
+        [ANOTHER_CACHE_QUERY, { resultUrl: { path: "R1" }, endpoints: ["endpoint"], id: RDF_FACTORY.namedNode("R1") }],
     ]);
 
     const A_CACHE: Cache = new Map([
@@ -201,7 +201,8 @@ describe(getCachedQuads.name, () => {
                 query: translate(A_CACHE_QUERY),
                 cache: {
                     url: "R0"
-                }
+                },
+                id: RDF_FACTORY.namedNode("R0")
             });
             expect(result.value.algorithmIndex).toBe(0);
 
@@ -315,14 +316,14 @@ describe(getCachedQuads.name, () => {
             };
 
             const resultOrError = await getCachedQuads(input);
-            console.log(resultOrError);
             expect(isResult(resultOrError)).toBe(true);
             const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
             expect(result.value).toBeDefined();
             expect(result.value).toStrictEqual({
                 algorithmIndex: 0,
                 query: translate(A_CACHE_QUERY),
-                cache: expectedBindings
+                cache: expectedBindings,
+                id: RDF_FACTORY.namedNode("R0")
             });
             expect(result.value.algorithmIndex).toBe(0);
 
@@ -383,14 +384,14 @@ describe(getCachedQuads.name, () => {
             };
 
             const resultOrError = await getCachedQuads(input);
-            console.log(resultOrError);
             expect(isResult(resultOrError)).toBe(true);
             const result: { value: CacheResult } = <{ value: CacheResult }>resultOrError;
             expect(result.value).toBeDefined();
             expect(result.value).toStrictEqual({
                 algorithmIndex: 0,
                 query: translate(A_CACHE_QUERY),
-                cache: expectedBindings
+                cache: expectedBindings,
+                id: RDF_FACTORY.namedNode("R0")
             });
             expect(result.value.algorithmIndex).toBe(0);
 

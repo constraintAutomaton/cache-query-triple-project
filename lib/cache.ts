@@ -11,15 +11,14 @@ import {
   type JsonResultLocation,
 } from './parse_cache';
 import { SparqlJsonParser, type IBindings } from 'sparqljson-parse';
-import * as pLimit from 'p-limit';
 import {
   safePromise,
   isError,
   isResult,
-  type Result,
   type SafePromise,
 } from 'result-interface';
 import { readFile } from 'fs/promises';
+import type * as RDF from '@rdfjs/types';
 
 const SPARQL_JSON_PARSER = new SparqlJsonParser({
   dataFactory: RDF_FACTORY,
@@ -93,13 +92,14 @@ async function getRelevantCacheEntry({
     // for each query in the cache
     for (const [
       cachedQuery,
-      { resultUrl: resultLocation, endpoints },
+      { resultUrl: resultLocation, endpoints, id },
     ] of cacheForTarget) {
       const resp = await algorithm(query, translate(cachedQuery), {
         sources: endpoints,
       });
 
       if (isResult(resp) && resp.value) {
+        cachedResult.id = id;
         cachedResult.cache = resultLocation;
         cachedResult.algorithmIndex = index;
         cachedResult.query = translate(cachedQuery);
@@ -233,6 +233,10 @@ export interface ICacheResult<C extends JsonResultLocation | IBindings[]> {
    * The query that was cache hit
    */
   query: Algebra.Operation;
+  /**
+   * The Id of the cache entry
+   */
+  id: RDF.Term
 }
 /**
  * Cached quad
