@@ -1,4 +1,4 @@
-import { expect, describe, mock, it, beforeEach } from "bun:test";
+import { expect, describe, mock, it, beforeEach, Mock} from "bun:test";
 import { ArrayIterator, AsyncIterator, fromArray } from "asynciterator";
 import type * as RDF from '@rdfjs/types';
 import { parseCache, type Cache } from "../lib/parse_cache";
@@ -7,6 +7,7 @@ import * as Vocabulary from '../lib/vocabulary';
 import { rdfParser } from "rdf-parse";
 import { isError, isResult } from 'result-interface';
 import Streamify from 'streamify-string';
+import { rdfDereferencer } from "rdf-dereference";
 
 let quadStream: AsyncIterator<RDF.Quad> = fromArray(new Array<RDF.Quad>());
 
@@ -23,6 +24,8 @@ mock.module("rdf-dereference", () => {
 describe(parseCache.name, () => {
     beforeEach(() => {
         quadStream = fromArray(new Array<RDF.Quad>());
+        (<Mock<any>>rdfDereferencer.dereference).mockClear();
+        
     });
 
     it("should return an empty cache given a resource having no triples", async () => {
@@ -223,5 +226,69 @@ describe(parseCache.name, () => {
 
         expect(new Set(entryQueryFoo?.endpoints)).toStrictEqual(new Set(["endpoint4", "endpoint5"]));
         expect(entryQueryFoo?.resultUrl).toStrictEqual({url:"fooR2"});
+    });
+
+    it("should use the custom fetch function given an URL is provided", async ()=>{
+        const string_triples = `
+        <foo>  <${Vocabulary.QUERY_PREDICATE.value}> <bar> ;
+            <${Vocabulary.RESULT_IRI_PREDICATE.value}> "fooR" ;
+            <${Vocabulary.ENDPOINT_PREDICATE.value}> ("endpoint1" "endpoint2" "endpoint3") ;
+            a <${Vocabulary.QUERY_CLASS.value}> .
+        `;
+
+        const triplesStream = rdfParser.parse(Streamify(string_triples), { contentType: 'text/turtle' })
+        const triples = await triplesStream.toArray();
+
+        quadStream = new ArrayIterator(triples, { autoStart: false });
+        const mockFetch:any = mock();
+        
+        const result = await parseCache({url: "foo"}, mockFetch);
+        expect(isResult(result)).toBe(true);
+        let cache: Cache = (<any>result).value;
+
+        expect(cache.size).toBe(1);
+        const entryEndpoint = cache.get(listOfEnpointsToString(["endpoint1", "endpoint2", "endpoint3"]));
+        expect(entryEndpoint).toBeDefined();
+        expect(entryEndpoint?.size).toBe(1);
+        const entryQuery = entryEndpoint?.get("bar");
+        expect(entryQuery).toBeDefined();
+
+        expect(new Set(entryQuery?.endpoints)).toStrictEqual(new Set(["endpoint1", "endpoint2", "endpoint3"]));
+        expect(entryQuery?.resultUrl).toStrictEqual({path: "fooR"});
+
+        expect(rdfDereferencer.dereference).toHaveBeenCalledTimes(1);
+        expect(rdfDereferencer.dereference).toHaveBeenLastCalledWith("foo", { fetch: mockFetch });
+    });
+
+    it("should not use the custom fetch function given an path is provided", async ()=>{
+        const string_triples = `
+        <foo>  <${Vocabulary.QUERY_PREDICATE.value}> <bar> ;
+            <${Vocabulary.RESULT_IRI_PREDICATE.value}> "fooR" ;
+            <${Vocabulary.ENDPOINT_PREDICATE.value}> ("endpoint1" "endpoint2" "endpoint3") ;
+            a <${Vocabulary.QUERY_CLASS.value}> .
+        `;
+
+        const triplesStream = rdfParser.parse(Streamify(string_triples), { contentType: 'text/turtle' })
+        const triples = await triplesStream.toArray();
+
+        quadStream = new ArrayIterator(triples, { autoStart: false });
+        const mockFetch:any = mock();
+        
+        const result = await parseCache({path: "foo"}, mockFetch);
+        expect(isResult(result)).toBe(true);
+        let cache: Cache = (<any>result).value;
+
+        expect(cache.size).toBe(1);
+        const entryEndpoint = cache.get(listOfEnpointsToString(["endpoint1", "endpoint2", "endpoint3"]));
+        expect(entryEndpoint).toBeDefined();
+        expect(entryEndpoint?.size).toBe(1);
+        const entryQuery = entryEndpoint?.get("bar");
+        expect(entryQuery).toBeDefined();
+
+        expect(new Set(entryQuery?.endpoints)).toStrictEqual(new Set(["endpoint1", "endpoint2", "endpoint3"]));
+        expect(entryQuery?.resultUrl).toStrictEqual({path: "fooR"});
+
+        expect(rdfDereferencer.dereference).toHaveBeenCalledTimes(1);
+        expect(rdfDereferencer.dereference).toHaveBeenLastCalledWith("foo", { localFiles: true });
     });
 });

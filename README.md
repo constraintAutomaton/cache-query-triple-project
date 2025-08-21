@@ -150,7 +150,9 @@ const input: ICacheQueryInput = {
   endpoints: ['https://sparql.rhea-db.org/sparql/'],
   cacheHitAlgorithms: [simpleCacheHit],
   // Request the URL of the cached result (instead of full result bindings)
-  outputOption: OutputOption.URL
+  outputOption: OutputOption.URL,
+  // A Custom fetch function to aquire the cache and result data.
+  customFetchFunction: undefined,
 };
 
 const cacheResult = await getCachedQuads(input);

@@ -19,9 +19,10 @@ export type JsonResultLocation = CacheLocation;
  */
 export async function parseCache(
   cacheLocation: CacheLocation,
+  customFetch?: typeof fetch
 ): SafePromise<Cache, Error> {
   let location: string | undefined;
-  let options: IDereferenceOptions | undefined;
+  let options: IDereferenceOptions | undefined = customFetch !== undefined ? { fetch: customFetch } : undefined;
 
   if ('url' in cacheLocation) {
     location = cacheLocation.url;
@@ -159,7 +160,7 @@ function rawCacheToCache(
       const targetEndpoint = listOfEnpointsToString(endpoints);
 
       const cacheEntry: ICacheEntry = {
-        id:rawCacheElement.id,
+        id: rawCacheElement.id,
         resultUrl: rawCacheElement.results,
         endpoints,
       };

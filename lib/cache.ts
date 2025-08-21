@@ -50,7 +50,7 @@ export async function getCachedQuads(
 ): SafePromise<CacheResult | undefined, Error> {
   let cache: Cache | undefined;
   if ('path' in input.cache || 'url' in input.cache) {
-    const cacheResp = await parseCache(input.cache);
+    const cacheResp = await parseCache(input.cache, input.customFetchFunction);
     if (isError(cacheResp)) {
       return { error: cacheResp.error };
     }
@@ -68,6 +68,7 @@ async function getRelevantCacheEntry({
   endpoints,
   cacheHitAlgorithms,
   outputOption,
+  customFetchFunction
 }: Readonly<Omit<ICacheQueryInput, 'cache'> & { cache: Cache }>): SafePromise<
   CacheResult | undefined,
   Error
@@ -121,7 +122,7 @@ async function getRelevantCacheEntry({
     return { value: cachedResult };
   }
 
-  const bindingsOrError = await fetchJsonSPARQL(cachedResult.cache);
+  const bindingsOrError = await fetchJsonSPARQL(cachedResult.cache, customFetchFunction);
   if (isError(bindingsOrError)) {
     return bindingsOrError;
   }
@@ -136,10 +137,12 @@ async function getRelevantCacheEntry({
 
 async function fetchJsonSPARQL(
   location: JsonResultLocation,
+  customFetchFunction?: typeof fetch
 ): SafePromise<IBindings[], Error> {
   let respJson: any | undefined = undefined;
   if ('url' in location) {
-    const resp = await safePromise(fetch(location.url));
+    const fetchingFunction = customFetchFunction??fetch;
+    const resp = await safePromise(fetchingFunction(location.url));
     if (isError(resp)) {
       // should return errors
       return {
@@ -216,6 +219,10 @@ export interface ICacheQueryInput {
    * The output format of the cache if it hit.
    */
   outputOption: OutputOption;
+  /**
+   * A Custom fetch function to aquire the cache and result data.
+   */
+  customFetchFunction?: typeof fetch;
 }
 /**
  * A cache results

@@ -1,4 +1,4 @@
-import { expect, describe, mock, it, beforeEach, type Mock, spyOn, jest } from "bun:test";
+import { expect, describe, mock, it, beforeEach, spyOn } from "bun:test";
 import { getCachedQuads, OutputOption, type CacheResult, type ICacheQueryInput } from "../lib/cache";
 import type { ICacheEntry, Cache } from "../lib/parse_cache";
 import { translate } from 'sparqlalgebrajs';
